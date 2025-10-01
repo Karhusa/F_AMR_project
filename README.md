@@ -1,4 +1,4 @@
-# Master's thesis female AMR project
+# Master's thesis: AMR project female
 
 Saana Karhula 29.10.2025 - 22.11.2025
 
