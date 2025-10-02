@@ -1,0 +1,14 @@
+# Look through the human_sample_list.csv with 
+
+
+# Save unique values to a textfile
+```
+cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
+```
+
+# Save unique prefixes to a textfile
+
+```
+tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.txt
+```
+
