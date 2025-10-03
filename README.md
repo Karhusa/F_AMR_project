@@ -11,3 +11,8 @@ Saana Karhula 29.10.2025 - 22.11.2025
 3.  **Run accessions: fetching the data from Metalog**
     1.  Script (add link)
     2.  QC
+
+##  2. Look through TSE-object
+See what kind of 
+
+3. 
