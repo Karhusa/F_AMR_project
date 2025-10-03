@@ -25,8 +25,6 @@ awk -F',' '$2 ~ /^SAMD/ {print}' human_sample_list.csv > samd_ids.csv
 #SAMEA
 awk -F',' '$2 ~ /^SAMEA/ {print}' human_sample_list.csv > samea_ids.csv
 #SAMN
-
-Moi Joonas
 awk -F',' '$2 ~ /^SAMN/ {print}' human_sample_list.csv > samn_ids.csv
 #SRR
 awk -F',' '$2 ~ /^SRR/ {print}' human_sample_list.csv > srr_ids.csv
