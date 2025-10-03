@@ -22,7 +22,7 @@ Download the csv file from [Metalog - human samples](https://metalog.embl.de/exp
 
 Make new lists based on the unique sample prefixes (SRR, ERR, SAMN and so on). Go through the lists and see if those have any matches to the TSE object
 
-[Codes for 2.1.](https://github.com/Karhusa/F_AMR_project/blob/main/00_Human_sample_list.csv_lookthrough)
+[Codes for 2.1.](https://github.com/Karhusa/F_AMR_project/blob/main/00_Human_sample_list.csv_lookthrough.md)
 
 ### 2.2. QC
 
