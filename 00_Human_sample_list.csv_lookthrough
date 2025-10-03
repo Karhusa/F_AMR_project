@@ -1,14 +1,34 @@
 # Look through the human_sample_list.csv with 
 
 
-# Save unique values to a textfile
-```
+# Save unique values from colum 1 to a textfile
 cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
-```
 
-# Save unique prefixes to a textfile
+# Save unique prefixes from column 2 to a textfile
+tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.tx
+#ERR
+#ERS
+#SAMD
+#SAMEA
+#SAMN
+#SRR
+#SRS
+#SRX
 
-```
-tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.txt
-```
-
+# make different tables with different sample number prefixes (smaller and easier to run)
+#ERR
+awk -F',' '$2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
+#ERS
+awk -F',' '$2 ~ /^ERS/ {print}' human_sample_list.csv > ers_ids.csv
+#SAMD
+awk -F',' '$2 ~ /^SAMD/ {print}' human_sample_list.csv > samd_ids.csv
+#SAMEA
+awk -F',' '$2 ~ /^SAMEA/ {print}' human_sample_list.csv > samea_ids.csv
+#SAMN
+awk -F',' '$2 ~ /^SAMN/ {print}' human_sample_list.csv > samn_ids.csv
+#SRR
+awk -F',' '$2 ~ /^SRR/ {print}' human_sample_list.csv > srr_ids.csv
+#SRS
+awk -F',' '$2 ~ /^SRS/ {print}' human_sample_list.csv > srs_ids.csv
+#SRX
+awk -F',' '$2 ~ /^SRX/ {print}' human_sample_list.csv > srx_ids.csv
