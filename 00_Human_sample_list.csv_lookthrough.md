@@ -92,5 +92,10 @@ length(matches_samea)
 # --> 1976
 
 ```
+Make a list of all mathicing values andd add those to the SRA_metadata_with_biosample
 
+```
+all_matches <- c(matches_samd, matches_samea, matches_samn)
+
+SRA_metadata_with_biosample$Metalog <- ifelse(SRA_metadata_with_biosample$biosample %in% all_matches, 1, 0)
 ```
