@@ -144,4 +144,18 @@ length(duplicates)
 head(duplicates)
 # "SAMEA2466887" "SAMEA2466888" "SAMEA2466890" "SAMEA2466891" "SAMEA2466892" "SAMEA2466898"
 ```
+Lets find out why there are duplicate biosample values
+
+```
+SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
+
+#        acc    biosample geo_loc_name_country_calc geo_loc_name_country_continent_calc platform          instrument
+# 1 ERR480588 SAMEA2466887                                                               ILLUMINA Illumina HiSeq 2000
+# 2 ERR479091 SAMEA2466887                                                               ILLUMINA Illumina HiSeq 2000
+#  bioproject avgspotlen mbases collection_date_sam Metalog
+# 1  PRJEB6070         63    327                           1
+# 2  PRJEB6070        145   1452                           1
+
+```
+--> biosample number is the same for different acc numbers (most likely two diffenent samples from the same patient)
 
