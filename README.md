@@ -12,21 +12,40 @@ Saana Karhula 29.10.2025 - 22.11.2025
 
 ## 2. Look through TSE-object and compare it to METALOG csv file
 
-We need to find matching ACC-numbers from TSE-object and Meatlog file
+The objective of this step is to identify matching accession numbers (ACC) between the TSE object and the METALOG dataset.
 
 ### 2.1. Main
 
-Download already existing TSE-object to your local computer and open it with R and check what kind of sample or ACC identifies data includes. We are interested in column number1 named "acc", it includes Accession numbers of samples.
+**Prepare the TSE Object**
 
-Download the csv file from [Metalog - human samples](https://metalog.embl.de/explore/human) and open with unix (too large for R). File includes three columns: study code, ena_ers_sample_id and sample alias. We are interested in values in column 2. Save unique prefixes from column 2 to a textfile to see what it icludes.
+Download the existing TSE object to your local machine. Open it in R and inspect the data structure to determine what types of sample or accession identifiers it contains.
+The primary column of interest is column 1 ("acc"), which includes the accession numbers corresponding to the samples.
 
-Make new lists based on the unique sample prefixes (SRR, ERR, SAMN and so on). Go through the lists and see if those have any matches to the TSE object
+**Obtain and Inspect the METALOG File**
+
+Download the CSV file from Metalog – Human Samples. Since the file is too large to efficiently open in R, examine it using Unix-based tools.
+The file includes three columns:
+1. Study code
+2. ena_ers_sample_id
+3. Sample alias
+
+**Extract and Analyze Identifiers**
+
+Focus on column 2 (ena_ers_sample_id), which contains sample identifiers. Save the unique prefixes from this column (e.g., SRR, ERR, SAMN) to a text file to review the types of identifiers included. Create separate lists for each prefix type and compare these lists to the accession numbers in the TSE object.
+
+**Results**
+
+Initially, no matches were found between the accession numbers in the TSE object and those in the METALOG file.
+
+A new table, SRA_metadata_with_biosample_numbers, was then obtained, which included both SRA and BioSample identifiers. Using this updated table, matching entries were successfully identified within the TSE object.
+
 
 [Codes for 2.1.](https://github.com/Karhusa/F_AMR_project/blob/main/00_Human_sample_list.csv_lookthrough.md)
 
 ### 2.2. QC
 
 3.10.2025 All of the searches returned empty matches. This was also looked through with with hands on (looked through the files).
+8.10.2025 Matches found for the sampleid numbers
 
 Now next we need to find ACC numbers for sample ids (f.ex. SAMN), because TSE-object includes only ACC-numbers.
 
