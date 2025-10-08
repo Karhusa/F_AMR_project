@@ -74,28 +74,74 @@ matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$a
 
 ````
 
-All of the searches returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids: Katariina was able to get a new SRA file with sample id-numbers (how and where)
+All of the searches returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids. Katariina was able to get a new SRA file (TSE-objest) with sample id numbers (how and where)
+
+Lets compare the sample id numbers to the new SRA file
 
 ```
 {r}
+
 SRA_metadata_with_biosample <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
 View(SRA_metadata_with_biosample)
 
 matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samd)
 # --> 27
+
 matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samea)
 # --> 1617
+
 matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samea)
 # --> 1976
 
+# total: 3620
 ```
-Make a list of all mathicing values andd add those to the SRA_metadata_with_biosample
+
+There were matches.
+
+Make a new column "Metalog" to SRA-table and add a "1" to the column if there was a match between the SRA table and metalog sample ids (all_matches). Otherwise add 0.
+
 
 ```
 all_matches <- c(matches_samd, matches_samea, matches_samn)
+length(all_matches)
+#3620
 
 SRA_metadata_with_biosample$Metalog <- ifelse(SRA_metadata_with_biosample$biosample %in% all_matches, 1, 0)
+sum(SRA_metadata_with_biosample$Metalog == 1, na.rm = TRUE)
+#5391
 ```
+--> numbers are not equal (all_matches length 3620 and Metalog column values returned 5391) and we need to understand why.
+
+Lets see if there are duplicates in the biosample column or in the all_matches values.
+
+```
+library(dplyr)
+
+# SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1] #returns a vector of biosample IDs that had a match in all_matches list (number 1).
+# unique removes all the duplicate values and length gives the length of the list.
+
+length(unique(SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]))
+# 3620 --> same value as in the all_matches list, so there are duplicates
+
+length(unique(all_matches))
+# 3620 --> all are unique values
+
+```
+There were duplicates in the SRA biosample column, lets see why.
+
+```
+#keep biosample numbers with Metalog value 1, count the biomaple values and keep only duplicates (or count > 1)
+matched_rows <- SRA_metadata_with_biosample[SRA_metadata_with_biosample$Metalog == 1, ]
+biosample_counts <- table(matched_rows$biosample)
+duplicates <- names(biosample_counts[biosample_counts > 1])
+
+length(duplicates)
+# 381
+
+head(duplicates)
+# "SAMEA2466887" "SAMEA2466888" "SAMEA2466890" "SAMEA2466891" "SAMEA2466892" "SAMEA2466898"
+```
+
