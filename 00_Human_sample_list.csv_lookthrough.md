@@ -74,4 +74,23 @@ matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$a
 
 ````
 
-All of the searches returned empty matches. This was also looked through with with hands on (looked through the files)
+All of the searches returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids: Katariina was able to get a new SRA file with sample id-numbers (how and where)
+
+```
+{r}
+SRA_metadata_with_biosample <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
+View(SRA_metadata_with_biosample)
+
+matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
+length(matches_samd)
+# --> 27
+matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
+length(matches_samea)
+# --> 1617
+matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
+length(matches_samea)
+# --> 1976
+
+```
+
+```
