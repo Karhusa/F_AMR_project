@@ -72,7 +72,29 @@ matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_col$a
 matches_srs<- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$acc]
 
-````
+```
+
+Lets try another approach, because the prefixes ERR and SRR can be mixed and only the series of numbers behind prefix matters. df_col also includes prefix DRR which need to taken into account.
+
+So lets create a new dataframe of needed prefixes. 
+```
+df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
+
+err_nums <- sub("^ERR", "", err_ids$ena_ers_sample_id)
+srr_nums <- sub("^SRR", "", srr_ids$ena_ers_sample_id)
+df_nums  <- sub("^[A-Z]+", "", df_filtered)
+
+err_df <- data.frame(type = "ERR", id = err_ids$ena_ers_sample_id, num = err_nums)
+srr_df <- data.frame(type = "SRR", id = srr_ids$ena_ers_sample_id, num = srr_nums)
+df_ref <- data.frame(type = "df_col", id = df_filtered, num = df_nums)
+
+combined <- rbind(err_df, srr_df)
+matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
+
+matches
+
+
+```
 
 All of the searches returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids. Katariina was able to get a new SRA file (TSE-objest) with sample id numbers (how and where)
 
@@ -158,4 +180,6 @@ SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
 
 ```
 --> biosample number is the same for different acc numbers (most likely two diffenent samples from the same patient)
+
+
 
