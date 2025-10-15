@@ -48,7 +48,7 @@ awk -F',' 'NR==1 || $2 ~ /^SRX/{print}' human_sample_list.csv > srx_ids.csv
 ````
 download to R
 
-````
+```
 {r}
 
 library(readr)
