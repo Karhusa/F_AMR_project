@@ -1,1 +1,20 @@
+Lets have a look of what the file looks like
 
+Then we need to collect samples with keywords female, male, disease, age, bmi, and antibiotics.
+
+
+
+```
+bash
+
+unzip -p Sra_metadata_jun12_attributes.txt.zip Sra_metadata_jun12_attributes.txt | head -n 5
+
+{
+  unzip -p Sra_metadata_jun12_attributes.txt.zip | head -n 1
+  unzip -p Sra_metadata_jun12_attributes.txt.zip | grep -Eiw 'female|male|disease|age|bmi|antibiotics'
+} > metadata_matches2.txt
+
+head -n 5 metadata_matches2.txt
+
+
+```
