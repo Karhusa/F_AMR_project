@@ -74,9 +74,10 @@ matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$a
 
 ```
 
-Lets try another approach, because the prefixes ERR and SRR can be mixed and only the series of numbers behind prefix matters. df_col also includes prefix DRR which need to taken into account.
+Lets try another approach, because the prefixes ERR and SRR can be mixed and only the series of numbers behind prefix matters. df_col in TSE-object also includes prefix DRR which need to taken into account.
 
-So lets create a new dataframe of needed prefixes. 
+So lets filter out the numbers behind prefixes and compare those to TSE-object.
+
 ```
 df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
 
@@ -93,10 +94,10 @@ matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
 
 matches
 
-
 ```
+Unfortunately no matches were found. This was also visualised and checked by hand.
 
-All of the searches returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids. Katariina was able to get a new SRA file (TSE-objest) with sample id numbers (how and where)
+All of the searches above returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids. Katariina was able to get a new SRA file (TSE-objest) with sample id numbers (how and where)
 
 Lets compare the sample id numbers to the new SRA file
 
