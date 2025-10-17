@@ -120,8 +120,16 @@ df_TSE_matched_1 <- df_TSE_matched %>% filter(Metalog == 1)
 View(df_TSE_matched_1)
 
 ```
+Merge SRA_metadata_with_biosample_matched_1 [script 00](https://github.com/Karhusa/F_AMR_project/blob/main/00_Merging_Metalog_samples_and_filtered_TSE-object.md)and df_TSE_matched_1 
 
 ```
+merged_all <- bind_rows(SRA_metadata_with_biosample_matched_1, df_TSE_matched_1)
+View(merged_all)
+dim(SRA_metadata_with_biosample_matched_1)
+# [1] 5391   11
 
+write.table(merged_all, "merged_all.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+
+```
 
 
