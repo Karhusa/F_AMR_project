@@ -182,5 +182,10 @@ SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
 ```
 --> biosample number is the same for different acc numbers (most likely two diffenent samples from the same patient)
 
+Collect only files with metalog value 1
 
+```
+SRA_metadata_with_biosample_matched_1 <- SRA_metadata_with_biosample %>% filter(Metalog == 1)
 
+View(SRA_metadata_with_biosample_matched_1)
+```
