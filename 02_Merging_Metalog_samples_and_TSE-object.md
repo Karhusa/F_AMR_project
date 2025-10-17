@@ -4,6 +4,7 @@ Download already existing TSE-object to your local computer and open it with R a
 
 ```{r}
 library(tibble)
+library(dplyr)
 
 TSE <- readRDS("~/Downloads/TSE.rds")
 df_TSE <- as_tibble(colData(TSE))
@@ -113,6 +114,12 @@ table(df_TSE$Metalog)
 
 ```
 
+```
+df_TSE_matched_1 <- df_TSE_matched %>% filter(Metalog == 1)
+
+View(df_TSE_matched_1)
+
+```
 
 ```
 
