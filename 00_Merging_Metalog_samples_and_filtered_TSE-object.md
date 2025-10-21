@@ -8,16 +8,19 @@ library(tibble)
 TSE_filtered <- readRDS("~/Downloads/TSE_filtered.rds")
 df_col <- as_tibble(colData(TSE_filtered))
 View(df_col)
-
 ```
+We are interested in the column named acc, which contains the accession numbers of the samples.
 
-We are interested in column number1 named "acc", it includes Accession numbers of samples.
+### 2. Download Sample List from Metalog and Inspect Accession Numbers
 
-### 2. Download sample list from Metalog and check it for acc-numbers 
+Download the human sample list from Metalog. The file is too large for R, so inspect it using Unix tools.
 
-Download the list from [Metalog- human samples](https://metalog.embl.de/explore/human) and open with unix (too large for R)
+The file contains three columns:
+- Study code
+- ena_ers_sample_id
+- Sample alias
 
-File includes three columns: study code, ena_ers_sample_id and sample alias. We are interested in column 2. Save unique prefixes from column 2 to a textfile to see what it icludes
+We are interested in column 2 (ena_ers_sample_id). First, extract unique prefixes to understand the sample ID formats:
 
 ```
 bash
@@ -27,6 +30,11 @@ cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
 
 # Save unique prefixes from column 2 to a textfile
 tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.tx
+```
+Example prefixes
+
+```{r}
+Example prefixes:
 #ERR
 #ERS
 #SAMD
@@ -35,7 +43,9 @@ tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u >
 #SRR
 #SRS
 #SRX
-
+```
+Create separate tables for each prefix to simplify downstream processing:
+```
 # make different tables with different sample number prefixes (smaller and easier to run)
 awk -F',' 'NR==1 || $2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^ERS/ {print}' human_sample_list.csv > ers_ids.csv
@@ -46,11 +56,9 @@ awk -F',' 'NR==1 || $2 ~ /^SRR/ {print}' human_sample_list.csv > srr_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^SRS/ {print}' human_sample_list.csv > srs_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^SRX/{print}' human_sample_list.csv > srx_ids.csv
 ````
-download to R
+## 3. Load Sample Lists into R
 
-```
-{r}
-
+```{r}
 library(readr)
 
 err_ids <- read_csv("Gradu_AMR/err_ids.csv")
@@ -61,8 +69,9 @@ samn_ids <- read_csv("Gradu_AMR/samn_ids.csv")
 srr_ids <- read_csv("Gradu_AMR/srr_ids.csv")
 srs_ids <- read_csv("Gradu_AMR/srs_ids.csv")
 srx_ids <- read_csv("Gradu_AMR/srx_ids.csv")
-
-
+```
+Check for matches between Metalog sample IDs and the TSE object:
+```{r}
 matches_err <- err_ids$ena_ers_sample_id[err_ids$ena_ers_sample_id %in% df_col$acc]
 matches_ers <- ers_ids$ena_ers_sample_id[ers_ids$ena_ers_sample_id %in% df_col$acc]
 matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% df_col$acc]
@@ -71,14 +80,12 @@ matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% df_co
 matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srs<- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$acc]
-
 ```
+## 4. Try Matching by Numeric Suffix (Ignoring Prefix)
 
-Lets try another approach, because the prefixes ERR and SRR can be mixed and only the series of numbers behind prefix matters. df_col in TSE-object also includes prefix DRR which need to taken into account.
+Since prefixes like ERR, SRR, and DRR may vary, match based on the numeric part of the sample ID:
 
-So lets filter out the numbers behind prefixes and compare those to TSE-object.
-
-```
+```{r}
 df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
 
 err_nums <- sub("^ERR", "", err_ids$ena_ers_sample_id)
@@ -93,17 +100,14 @@ combined <- rbind(err_df, srr_df)
 matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
 
 matches
-
 ```
-Unfortunately no matches were found. This was also visualised and checked by hand.
+No matches were found. This was also verified manually.
 
-All of the searches above returned empty matches. This was also looked through with with hands on (looked through the files). So there were no matches. Now we need to look more closely the sample ids. Katariina was able to get a new SRA file (TSE-objest) with sample id numbers (how and where)
+## 5. Compare Sample IDs to a New SRA File
 
-Lets compare the sample id numbers to the new SRA file
+I got a new SRA file with biosample IDs. Let's compare those:
 
-```
-{r}
-
+```{r}
 SRA_metadata_with_biosample <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
 View(SRA_metadata_with_biosample)
 
@@ -113,37 +117,37 @@ length(matches_samd)
 
 matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samea)
-# --> 1617
 
 matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samea)
-# --> 1976
-
-# total: 3620
 ```
+Match counts:
+- SAMD: 27
+- SAMEA: 1617
+- SAMN: 1976
+- Total matches: 3620
 
-There were matches.
+## 6. Annotate SRA Table with Metalog Matches
 
-Make a new column "Metalog" to SRA-table and add a "1" to the column if there was a match between the SRA table and metalog sample ids (all_matches). Otherwise add 0.
+Create a new column Metalog in the SRA table:
 
-
-```
+```{r}
 all_matches <- c(matches_samd, matches_samea, matches_samn)
 length(all_matches)
-#3620
 
 SRA_metadata_with_biosample$Metalog <- ifelse(SRA_metadata_with_biosample$biosample %in% all_matches, 1, 0)
 sum(SRA_metadata_with_biosample$Metalog == 1, na.rm = TRUE)
-#5391
+# Result: 5391
 ```
---> numbers are not equal (all_matches length 3620 and Metalog column values returned 5391) and we need to understand why.
+Note: The number of matches (5391) exceeds the length of all_matches (3620). Let's investigate.
 
-Lets see if there are duplicates in the biosample column or in the all_matches values.
+7. Investigate Duplicate Biosample IDs
 
-```
+```{r}
 library(dplyr)
 
-# SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1] #returns a vector of biosample IDs that had a match in all_matches list (number 1).
+# SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]
+#returns a vector of biosample IDs that had a match in all_matches list (number 1).
 # unique removes all the duplicate values and length gives the length of the list.
 
 length(unique(SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]))
@@ -167,9 +171,9 @@ length(duplicates)
 head(duplicates)
 # "SAMEA2466887" "SAMEA2466888" "SAMEA2466890" "SAMEA2466891" "SAMEA2466892" "SAMEA2466898"
 ```
-Lets find out why there are duplicate biosample values
+Duplicates exist in the biosample column. Let's identify them:
 
-```
+```{r}
 SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
 
 #        acc    biosample geo_loc_name_country_calc geo_loc_name_country_continent_calc platform          instrument
@@ -180,9 +184,9 @@ SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
 # 2  PRJEB6070        145   1452                           1
 
 ```
---> biosample number is the same for different acc numbers (most likely two diffenent samples from the same patient)
+Result: Same biosample ID appears with different accession numbers — likely samples from the same patient.
 
-Collect only files with metalog value 1
+8. Filter Matched Samples
 
 ```
 SRA_metadata_with_biosample_matched_1 <- SRA_metadata_with_biosample %>% filter(Metalog == 1)
