@@ -1,4 +1,4 @@
-### 1. Download and check TSE-object
+## 1. Download and check unfiltered TSE-object
 
 Download already existing TSE-object to your local computer and open it with R and check what kind of sample or ACC identifies data includes
 
