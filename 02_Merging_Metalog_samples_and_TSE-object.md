@@ -13,30 +13,94 @@ head -n 1 SRA_metadata_with_biosample_corrected.txt | tr ',' '\n' | nl
      9  mbases
     10  collection_date_sam
 
-```
-
-
-```
-awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samd_ids.csv > samd_ids.txt
-awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samea_ids.csv > samea_ids.txt
-awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samn_ids.csv > samn_ids.txt
-```
-
-```
-cut -d',' -f2 SRA_metadata_with_biosample_corrected.txt > biosample_ids.txt
-
-grep -Fxf <(cut -d',' -f1 samd_ids.txt) biosample_ids.txt > matches_samd.txt
-grep -Fxf <(cut -d',' -f1 samea_ids.txt) biosample_ids.txt > matches_samea.txt
-grep -Fxf <(cut -d',' -f1 samn_ids.txt) biosample_ids.txt > matches_samn.txt
+# filter biosample numbers
+grep -oE '\bSAM(N|D|EA)[0-9]+' SRA_metadata_with_biosample_corrected.txt | sort -u > sra_biosample_ids.txt
 
 ```
 
-```
-Python 3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
->>> import pandas as pd
->>> 
+## 2. Download and check human_all_wide_2025-10-19.tsv.gz
 
+```
+bash
+gzcat human_all_wide_2025-10-19.tsv.gz | wc -l
+# rows 85471
+gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 | awk -F'\t' '{print NF}'
+# columns: 2836
+
+# Does this file have sample id numbers?
+gzcat human_all_wide_2025-10-19.tsv.gz | grep -E '\bSAM(N|D|EA)[0-9]+' | wc -l
+# yes: 81436
+
+#Extract the sample ids to a separate list:
+gzcat human_all_wide_2025-10-19.tsv.gz | grep -oE '\bSAM(N|D|EA)[0-9]+' | sort -u > biosample_ids.txt
+
+```
+
+# 3. Find matching sample ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
+```
+sort biosample_ids.txt > biosample_ids_sorted.txt
+sort sra_biosample_ids.txt > sra_biosample_ids_sorted.txt
+
+comm -12 biosample_ids_sorted.txt sra_biosample_ids_sorted.txt > matched_biosamples.txt
+
+wc -l matched_biosamples.txt
+# matches: 20339
+
+```
+# 4. Make a new file from compressed human_all_wide_2025-10-19.tsv.gz
+```
+gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 > human_subset.tsv
+
+```
+
+# 4. Make a subset of matching ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
+
+```
+python
+
+python3
+
+import pandas as pd
+
+# 1: Load list of matching BioSample IDs
+matched_ids = pd.read_csv("matched_biosamples.txt", header=None, names=["biosample"], dtype=str)
+matched_set = set(matched_ids["biosample"])
+
+# Step 2:  Human_all_wide_2025-10-19.tsv.gz
+human_file = "human_all_wide_2025-10-19.tsv.gz"
+human_subset_file = "human_subset.tsv"
+
+#smaller parts because the file is large
+chunksize = 10000
+first_chunk = True
+
+for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
+    # Column 3 contains the biosample ID
+    col_name = chunk.columns[2] 
+    filtered = chunk[chunk[col_name].isin(matched_set)]
+    
+    filtered.to_csv(human_subset_file, sep="\t", index=False,
+                    mode='w' if first_chunk else 'a', header=first_chunk)
+    first_chunk = False
+
+print(f"Human table subset saved to: {human_subset_file}")
+
+# 3: Subset SRA_metadata_with_biosample_corrected.txt
+
+sra_file = "SRA_metadata_with_biosample_corrected.txt"
+sra_subset_file = "SRA_subset.csv"
+
+sra = pd.read_csv(sra_file, sep=",", dtype=str)
+sra_filtered = sra[sra['biosample'].isin(matched_set)]
+sra_filtered.to_csv(sra_subset_file, index=False)
+
+print(f"SRA metadata subset saved to: {sra_subset_file}")
+
+```
+
+
+Check that there are
+# 20339 rows in the both files
 ```
 
 
