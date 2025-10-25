@@ -36,8 +36,10 @@ gzcat human_all_wide_2025-10-19.tsv.gz | grep -oE '\bSAM(N|D|EA)[0-9]+' | sort -
 
 ```
 
-# 3. Find matching sample ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
+## 3. Find matching sample ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
 ```
+bash
+
 sort biosample_ids.txt > biosample_ids_sorted.txt
 sort sra_biosample_ids.txt > sra_biosample_ids_sorted.txt
 
@@ -45,15 +47,15 @@ comm -12 biosample_ids_sorted.txt sra_biosample_ids_sorted.txt > matched_biosamp
 
 wc -l matched_biosamples.txt
 # matches: 20339
-
 ```
-# 4. Make a new file from compressed human_all_wide_2025-10-19.tsv.gz
+## 4. Make a new file from compressed human_all_wide_2025-10-19.tsv.gz
+
 ```
 gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 > human_subset.tsv
 
 ```
 
-# 4. Make a subset of matching ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
+## 4. Make a subset of matching ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
 
 ```
 python
@@ -96,12 +98,31 @@ sra_filtered.to_csv(sra_subset_file, index=False)
 
 print(f"SRA metadata subset saved to: {sra_subset_file}")
 
+
+print(f"Human subset rows: {len(pd.read_csv(human_subset_file, sep='\t')) - 1}")  # minus header
+print(f"SRA subset rows: {len(pd.read_csv(sra_subset_file)) - 1}")
+exit()
+
 ```
 
-
-Check that there are
-# 20339 rows in the both files
 ```
+import pandas as pd
 
+sra_subset_file = "SRA_subset.csv"
+sra = pd.read_csv(sra_subset_file, dtype=str)
 
+# Check number of rows vs unique BioSample IDs
+total_rows = sra.shape[0]
+unique_ids = sra['biosample'].nunique()
 
+print(f"Total rows: {total_rows}")
+print(f"Unique BioSample IDs: {unique_ids}")
+
+if total_rows == unique_ids:
+    print("All BioSample IDs are unique.")
+else:
+    print(f"There are {total_rows - unique_ids} duplicate BioSample ID rows.")
+
+```
+#Total rows: 24605
+#Unique BioSample IDs: 20339
