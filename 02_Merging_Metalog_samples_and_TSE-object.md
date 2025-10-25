@@ -1,135 +1,43 @@
-## 1. Download and check unfiltered TSE-object
+## 1. Download and check SRA_metadata_with_biosample_corrected.txt
 
-Download already existing TSE-object to your local computer and open it with R and check what kind of sample or ACC identifies data includes
-
-```{r}
-library(tibble)
-library(dplyr)
-
-TSE <- readRDS("~/Downloads/TSE.rds")
-df_TSE <- as_tibble(colData(TSE))
-View(df_TSE)
+```
+head -n 1 SRA_metadata_with_biosample_corrected.txt | tr ',' '\n' | nl
+     1  acc
+     2  biosample
+     3  geo_loc_name_country_calc
+     4  geo_loc_name_country_continent_calc
+     5  platform
+     6  instrument
+     7  bioproject
+     8  avgspotlen
+     9  mbases
+    10  collection_date_sam
 
 ```
 
-We are interested in column number1 named "acc", it includes Accession numbers of samples.
-
-### 2. Download sample list from Metalog and check it for acc-numbers 
-
-Download the list from [Metalog- human samples](https://metalog.embl.de/explore/human) and open with unix (too large for R)
-
-File includes three columns: study code, ena_ers_sample_id and sample alias. We are interested in column 2. Save unique prefixes from column 2 to a textfile to see what it icludes
 
 ```
-bash
-
-# Save unique values from colum 1 to a textfile
-cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
-
-# Save unique prefixes from column 2 to a textfile
-tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.tx
-#ERR
-#ERS
-#SAMD
-#SAMEA
-#SAMN
-#SRR
-#SRS
-#SRX
-
-# make different tables with different sample number prefixes (smaller and easier to run)
-awk -F',' 'NR==1 || $2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^ERS/ {print}' human_sample_list.csv > ers_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SAMD/ {print}' human_sample_list.csv > samd_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SAMEA/ {print}' human_sample_list.csv > samea_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SAMN/ {print}' human_sample_list.csv > samn_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRR/ {print}' human_sample_list.csv > srr_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRS/ {print}' human_sample_list.csv > srs_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRX/{print}' human_sample_list.csv > srx_ids.csv
-````
-download to R
-
-```
-{r}
-
-library(readr)
-
-err_ids <- read_csv("Gradu_AMR/err_ids.csv")
-ers_ids <- read_csv("Gradu_AMR/ers_ids.csv")
-samd_ids <- read_csv("Gradu_AMR/samd_ids.csv")
-samea_ids <- read_csv("Gradu_AMR/samea_ids.csv")
-samn_ids <- read_csv("Gradu_AMR/samn_ids.csv")
-srr_ids <- read_csv("Gradu_AMR/srr_ids.csv")
-srs_ids <- read_csv("Gradu_AMR/srs_ids.csv")
-srx_ids <- read_csv("Gradu_AMR/srx_ids.csv")
-
-matches_err <- err_ids$ena_ers_sample_id[err_ids$ena_ers_sample_id %in% df_TSE $acc]
-# 83
-matches_ers <- ers_ids$ena_ers_sample_id[ers_ids$ena_ers_sample_id %in% df_TSE $acc]
-# -
-matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% df_TSE $acc]
-# -
-matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% df_TSE $acc]
-# -
-matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% df_TSE $acc]
-# -
-matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_TSE $acc]
-# 59
-matches_srs<- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_TSE $acc]
-# -
-matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_TSE $acc]
-# - 
-
+awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samd_ids.csv > samd_ids.txt
+awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samea_ids.csv > samea_ids.txt
+awk -F, 'NR==1 {for (i=1; i<=NF; i++) if ($i=="ena_ers_sample_id") col=i} NR>1 {print $col}' samn_ids.csv > samn_ids.txt
 ```
 
-Lets try another approach, because the prefixes ERR and SRR can be mixed and only the series of numbers behind prefix matters. df_col in TSE-object also includes prefix DRR which need to taken into account.
-
-So lets filter out the numbers behind prefixes and compare those to TSE-object.
-
 ```
-df_acc <- df_TSE$acc[grepl("^(SRR|ERR|DRR)", df_TSE$acc)]
+cut -d',' -f2 SRA_metadata_with_biosample_corrected.txt > biosample_ids.txt
 
-err_nums <- sub("^ERR", "", err_ids$ena_ers_sample_id)
-srr_nums <- sub("^SRR", "", srr_ids$ena_ers_sample_id)
-df_nums  <- sub("^[A-Z]+", "", df_acc)
-
-err_df <- data.frame(type = "ERR", id = err_ids$ena_ers_sample_id, num = err_nums)
-srr_df <- data.frame(type = "SRR", id = srr_ids$ena_ers_sample_id, num = srr_nums)
-df_ref <- data.frame(type = "df_TSE", id = df_acc, num = df_nums)
-
-combined <- rbind(err_df, srr_df)
-matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
-
-matches
-# 142
-
-```
-Insert number one to a new column called metalog if there was a match between the "matches" and unfiltered TSE-object
-
-```
-df_TSE$Metalog <- ifelse(df_TSE$acc %in% matches$id_df, 1, 0)
-table(df_TSE$Metalog)
-#     0     1 
-# 60854   142 
+grep -Fxf <(cut -d',' -f1 samd_ids.txt) biosample_ids.txt > matches_samd.txt
+grep -Fxf <(cut -d',' -f1 samea_ids.txt) biosample_ids.txt > matches_samea.txt
+grep -Fxf <(cut -d',' -f1 samn_ids.txt) biosample_ids.txt > matches_samn.txt
 
 ```
 
 ```
-df_TSE_matched_1 <- df_TSE_matched %>% filter(Metalog == 1)
-
-View(df_TSE_matched_1)
-
-```
-Merge SRA_metadata_with_biosample_matched_1 [script 00](https://github.com/Karhusa/F_AMR_project/blob/main/00_Merging_Metalog_samples_and_filtered_TSE-object.md)and df_TSE_matched_1 
+Python 3.12.0 (v3.12.0:0fb18b02c8, Oct  2 2023, 09:45:56) [Clang 13.0.0 (clang-1300.0.29.30)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import pandas as pd
+>>> 
 
 ```
-merged_all <- bind_rows(SRA_metadata_with_biosample_matched_1, df_TSE_matched_1)
-View(merged_all)
-dim(SRA_metadata_with_biosample_matched_1)
-# [1] 5391   11
 
-write.table(merged_all, "merged_all.tsv", sep="\t", quote=FALSE, row.names=FALSE)
-
-```
 
 
