@@ -126,3 +126,67 @@ else:
 ```
 #Total rows: 24605
 #Unique BioSample IDs: 20339
+
+```
+
+Merge subsetted tables:
+
+```
+
+import pandas as pd
+
+human_file = "human_all_wide_2025-10-19.tsv.gz"
+sra_file = "SRA_metadata_with_biosample_corrected.txt"
+matched_file = "matched_biosamples.txt"
+
+human_subset_file = "human_subset.tsv"
+sra_subset_file = "SRA_subset.csv"
+sra_unique_file = "SRA_subset_unique.csv"
+merged_file = "merged_subset_unique.tsv"
+
+chunksize = 10000  # adjust if you have lots of memory
+
+# Load matched BioSample IDs
+matched_ids = pd.read_csv(matched_file, header=None, names=["biosample"], dtype=str)
+matched_set = set(matched_ids["biosample"])
+print(f"Loaded {len(matched_set)} matched BioSample IDs.")
+
+# Subset human table in chunks
+print("Subsetting human table...")
+first_chunk = True
+for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
+    col_name = chunk.columns[2]  # column 3 = sample ID
+    filtered = chunk[chunk[col_name].isin(matched_set)]
+    
+    filtered.to_csv(human_subset_file, sep="\t", index=False,
+                    mode='w' if first_chunk else 'a', header=first_chunk)
+    first_chunk = False
+
+human_rows = sum(1 for _ in open(human_subset_file)) - 1
+print(f"Human subset saved to '{human_subset_file}' ({human_rows} rows).")
+
+# Subset and deduplicate SRA metadata
+print("Subsetting SRA metadata...")
+sra = pd.read_csv(sra_file, sep=",", dtype=str)
+sra_filtered = sra[sra['biosample'].isin(matched_set)]
+
+print(f"SRA subset: {sra_filtered.shape[0]} rows before deduplication.")
+sra_unique = sra_filtered.drop_duplicates(subset=['biosample'])
+print(f"SRA subset: {sra_unique.shape[0]} unique BioSamples after deduplication.")
+
+sra_filtered.to_csv(sra_subset_file, index=False)
+sra_unique.to_csv(sra_unique_file, index=False)
+print(f"Saved full SRA subset to '{sra_subset_file}' and unique subset to '{sra_unique_file}'.")
+
+# Merge human table and unique SRA subset
+print("Merging human and SRA subsets (unique BioSamples only)...")
+human = pd.read_csv(human_subset_file, sep="\t", dtype=str)
+merged = pd.merge(human, sra_unique, left_on=human.columns[2], right_on='biosample', how='inner')
+
+merged.to_csv(merged_file, sep="\t", index=False)
+print(f"Merged table saved to '{merged_file}' ({merged.shape[0]} rows, {merged.shape[1]} columns).")
+
+print("Done!")
+
+```
+
