@@ -127,7 +127,6 @@ else:
 #Total rows: 24605
 #Unique BioSample IDs: 20339
 
-```
 
 Merge subsetted tables:
 
