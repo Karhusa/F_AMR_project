@@ -59,13 +59,14 @@ gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 > human_subset.tsv
 ## 4. Make a subset of matching ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
 
 ```
+python
+
 import pandas as pd
 
-# Load list of matching BioSample IDs
-matched_ids = pd.read_csv("matched_biosamples.txt", header=None, names=["biosample"], dtype=str)
+matched_biosamples = pd.read_csv("matched_biosamples.txt", header=None, names=["biosample"], dtype=str)
 matched_set = set(matched_ids["biosample"])
 
-# Process the large human file in chunks
+# Process the large file in parts
 human_file = "human_all_wide_2025-10-19.tsv.gz"
 human_subset_file = "human_subset.tsv"
 
@@ -73,7 +74,7 @@ chunksize = 10000
 first_chunk = True
 
 for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
-    col_name = chunk.columns[2]   # the 3rd column holds the biosample ID
+    col_name = chunk.columns[2]   
     filtered = chunk[chunk[col_name].isin(matched_set)]
     
     filtered.to_csv(
@@ -97,52 +98,47 @@ sra_filtered.to_csv(sra_subset_file, index=False)
 
 print(f" SRA metadata subset saved to: {sra_subset_file}")
 
-# Check for sample id duplicates in both files
+```
+## Check both files for duplicate biosample id's
 
-# Read the human subset
+```
+pyhton
+
+import pandas as pd
+
 human_df = pd.read_csv(human_subset_file, sep="\t", dtype=str)
 human_id_col = human_df.columns[2]  # 3rd column = biosample ID
 
-# Count total and unique IDs
 total_human_rows = len(human_df)
 unique_human_ids = human_df[human_id_col].nunique()
 duplicate_human_rows = total_human_rows - unique_human_ids
 
-print(f"Human subset total rows: {total_human_rows}")
-print(f"Human subset unique BioSample IDs: {unique_human_ids}")
-print(f"Human subset duplicate rows: {duplicate_human_rows}")
-
-# Do the same for SRA
 total_sra_rows = len(sra_filtered)
 unique_sra_ids = sra_filtered["biosample"].nunique()
 duplicate_sra_rows = total_sra_rows - unique_sra_ids
 
+print(f"Human subset total rows: {total_human_rows}")
+print(f"Human subset unique BioSample IDs: {unique_human_ids}")
+print(f"Human subset duplicate rows: {duplicate_human_rows}")
 print(f"SRA subset total rows: {total_sra_rows}")
 print(f"SRA subset unique BioSample IDs: {unique_sra_ids}")
 print(f"SRA subset duplicate rows: {duplicate_sra_rows}")
-
-print("\n Duplicate check complete.")
 
 ```
 
 ## 6. Merge subsetted tables:
 
 ```
+python
+
 import pandas as pd
 
-# Load SRA metadata subset (keep all columns)
 sra = pd.read_csv("SRA_subset.csv", dtype=str)
-
-# Load human data subset (already filtered)
 human = pd.read_csv("human_subset.tsv", sep="\t", dtype=str)
 
-# The shared ID column:
 sra_id_col = "biosample"
-human_id_col = human.columns[2]  # Third column holds the biosample ID
+human_id_col = "spire_sample_name"
 
-print(f"Human sample ID column: {human_id_col}") #check the right column
-
-# Merge (many-to-many merge to keep duplicates)
 merged = pd.merge(
     human,
     sra,
@@ -159,4 +155,6 @@ merged.to_csv(merged_file, sep="\t", index=False)
 print(f"Merged file saved to: {merged_file}")
 print(f"Total rows in merged file: {len(merged)}")
 print(f"Total columns in merged file: {len(merged.columns)}")
+
+```
 
