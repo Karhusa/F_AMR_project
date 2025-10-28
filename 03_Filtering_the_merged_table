@@ -1,1 +1,45 @@
 
+```
+import pandas as pd
+import re
+
+merged_file = "merged_full_with_duplicates.tsv"
+sra_file = "SRA_metadata_with_biosample_corrected.txt"
+
+merged = pd.read_csv(merged_file, sep="\t", dtype=str, low_memory=False)
+sra = pd.read_csv(sra_file, sep=",", dtype=str, low_memory=False)
+
+sra_cols = list(sra.columns)
+
+keywords = [
+    "antibiotic", "bmi", "sex", "age", "disease", "infection",
+    "illness", "health", "therapy", "treatment"
+]
+
+extra_cols = ["spire_sample_name"]
+
+def column_matches(name):
+    name_lower = name.lower()
+    for kw in keywords:
+        if kw.lower() in name_lower:  # partial, case-insensitive match
+            return True
+    return False
+
+keyword_cols = [col for col in merged.columns if column_matches(col)]
+
+cols_to_keep = list(dict.fromkeys(sra_cols + extra_cols + keyword_cols))
+
+cols_to_keep = [c for c in cols_to_keep if c in merged.columns]
+
+filtered = merged[cols_to_keep]
+filtered_file = "merged_filtered_columns.tsv"
+filtered.to_csv(filtered_file, sep="\t", index=False)
+
+print(f"\ Filtered file saved to: {filtered_file}")
+print(f"Total columns kept: {len(filtered.columns)}")
+print("Some kept columns:")
+print(filtered.columns[:30].tolist())
+
+```
+
+
