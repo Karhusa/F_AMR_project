@@ -41,7 +41,17 @@ keywords = [
     "immune",
     "inflammation",
     "therapy",
-    "treatment"
+    "treatment",
+    "Amoxicillin",
+    "Ciprofloxacin",
+    "Azithromycin",
+    "Doxycycline",
+    "Penicillin",
+    "Cephalexin",
+    "Metronidazole",
+    "Clindamycin",
+    "Gentamicin",
+    "Trimethoprim-sulfamethoxazole"
 ]
 
 
@@ -127,6 +137,24 @@ df["bmi_range"].unique()
 df.loc[df["BMI_range"].isna() & (df["bmi"] < 30), "BMI_range"] = "<30"
 df.loc[df["BMI_range"].isna() & (df["bmi"] >= 30), "BMI_range"] = ">30"
 
+
+import numpy as np
+
+def simplify_bmi_range(x):
+    if pd.isna(x):
+        return np.nan
+    x = str(x).lower().strip()
+    # Treat anything that mentions "over 25" as ">30"
+    if "over" in x:
+        return ">30"
+    # Extract numbers and take the max in the range
+    numbers = [float(s) for s in x.replace("+", "").replace("-", " ").split() if s.replace(".", "").isdigit()]
+    if len(numbers) == 0:
+        return np.nan
+    return ">30" if max(numbers) >= 30 else "<30"
+
+df["BMI_range"] = df["bmi_range"].apply(simplify_bmi_range)
+
 ```
 Antibiotics:
 
@@ -155,7 +183,16 @@ df["raw_metadata_AgeAtEnd_Antibiotic_1"].unique()
 #remove empty column
 df = df.drop(columns=["antibiotic_dosage"])
 
+df["raw_metadata_antibiotic_use"].unique()
+#remove empty column
+df = df.drop(columns=["raw_metadata_antibiotic_use"])
 
+df["raw_metadata_Antibiotics_current"].unique()
+
+df["antibiotic_taken"] = df["raw_metadata_Antibiotics_current"].map({
+    "Y": "Yes",
+    "N": "No"
+})
 
 
 df[""].unique()
@@ -171,7 +208,9 @@ columns_to_drop = [
     "raw_metadata_Age.of.Mother",
     "age_days",
     "raw_metadata_AgeDischargedDays",
-    "raw_metadata_Age_at_collection"
+    "raw_metadata_Age_at_collection",
+    "raw_metadata_Age_at_diagnosis",
+    "raw_metadata_Antibiotics_Last3months"
 ]
 
 df = df.drop(columns=columns_to_drop)
