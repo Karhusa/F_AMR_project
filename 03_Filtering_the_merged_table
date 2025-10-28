@@ -1,45 +1,103 @@
 
+## collect columns to make a new data
+
 ```
 import pandas as pd
 import re
 
+# 1. Load merged file
+
 merged_file = "merged_full_with_duplicates.tsv"
-sra_file = "SRA_metadata_with_biosample_corrected.txt"
-
 merged = pd.read_csv(merged_file, sep="\t", dtype=str, low_memory=False)
-sra = pd.read_csv(sra_file, sep=",", dtype=str, low_memory=False)
 
-sra_cols = list(sra.columns)
+print(f"Loaded merged file with {merged.shape[0]} rows and {merged.shape[1]} columns.")
+
+
+# 2. Columns to ALWAYS keep
+# (all columns from SRA metadata + spire_sample_name)
+sra_full = pd.read_csv("SRA_metadata_with_biosample_corrected.txt", sep=",", dtype=str)
+
+sra_columns = set(sra_full.columns)
+
+always_keep = set(sra_columns)
+always_keep.add("spire_sample_name")
+
+# 3. Keyword categories we WANT to keep from human metadata
+# (flexible, case-insensitive)
 
 keywords = [
-    "antibiotic", "bmi", "sex", "age", "disease", "infection",
-    "illness", "health", "therapy", "treatment"
+    "bmi",
+    "body mass",
+    "antibiotic",
+    "antimicrobial",
+    "drug",
+    "sex",
+    "gender",
+    "age",
+    "disease",
+    "diagnosis",
+    "condition",
+    "infection",
+    "immune",
+    "inflammation",
+    "therapy",
+    "treatment"
 ]
 
-extra_cols = ["spire_sample_name"]
 
-def column_matches(name):
-    name_lower = name.lower()
-    for kw in keywords:
-        if kw.lower() in name_lower:  # partial, case-insensitive match
-            return True
-    return False
+# 4. Keywords to EXCLUDE
+# (Columns containing these will be dropped)
 
-keyword_cols = [col for col in merged.columns if column_matches(col)]
+exclude_keywords = [
+    "sexual",       
+    "private",
+    "identifier",
+    "confidential",
+    "contact",
+    "gestational",
+    "beverages",
+    "stage",
+    "vitamin"
+]
 
-cols_to_keep = list(dict.fromkeys(sra_cols + extra_cols + keyword_cols))
 
-cols_to_keep = [c for c in cols_to_keep if c in merged.columns]
+def is_unwanted(col):
+    col_low = col.lower()
+    return any(bad in col_low for bad in exclude_keywords)
 
-filtered = merged[cols_to_keep]
-filtered_file = "merged_filtered_columns.tsv"
-filtered.to_csv(filtered_file, sep="\t", index=False)
 
-print(f"\ Filtered file saved to: {filtered_file}")
-print(f"Total columns kept: {len(filtered.columns)}")
-print("Some kept columns:")
-print(filtered.columns[:30].tolist())
+# 5. Determine which columns match keyword categories
+
+def matches_category(col):
+    col_low = col.lower()
+    return any(re.search(rf"{kw}", col_low) for kw in keywords)
+
+keyword_columns = {c for c in merged.columns if matches_category(c)}
+
+# 6. Compute the final set of columns to keep
+
+columns_to_keep = (always_keep | keyword_columns)
+
+columns_to_keep = {c for c in columns_to_keep if not is_unwanted(c)}
+
+columns_to_keep = sorted([c for c in columns_to_keep if c in merged.columns])
+
+print(f"\nTotal columns kept: {len(columns_to_keep)}")
+
+# 7. Create cleaned dataframe
+
+merged_cleaned = merged[columns_to_keep]
+
+# 8. Save output
+
+output_file = "merged_filtered_cleaned.tsv"
+merged_cleaned.to_csv(output_file, sep="\t", index=False)
+
+print(f"\n✅ Cleaned dataset saved to: {output_file}")
+print(f"✅ Final shape: {merged_cleaned.shape[0]} rows x {merged_cleaned.shape[1]} columns")
 
 ```
+
+
 
 
