@@ -57,14 +57,19 @@ exclude_keywords = [
     "gestational",
     "beverages",
     "stage",
-    "vitamin"
+    "vitamin",
+    "alcohol",
+    "average",
+    "home",
+    "sports",
+    "strength",
+    "siblings"
 ]
 
 
 def is_unwanted(col):
     col_low = col.lower()
     return any(bad in col_low for bad in exclude_keywords)
-
 
 # 5. Determine which columns match keyword categories
 
@@ -98,6 +103,82 @@ print(f"✅ Final shape: {merged_cleaned.shape[0]} rows x {merged_cleaned.shape[
 
 ```
 
+
+```
+df = pd.read_csv("merged_filtered_cleaned.tsv", sep="\t")
+```
+Remove columns with no values
+
+```
+# Drop columns that are entirely empty (all NaN)
+df = df.dropna(axis=1, how='all')
+
+```
+
+BMI
+
+```
+df = pd.read_csv("merged_filtered_cleaned.tsv", sep="\t")
+
+df["BMI_range"].unique()
+df["bmi"].unique()
+df["bmi_range"].unique()
+
+df.loc[df["BMI_range"].isna() & (df["bmi"] < 30), "BMI_range"] = "<30"
+df.loc[df["BMI_range"].isna() & (df["bmi"] >= 30), "BMI_range"] = ">30"
+
+```
+Antibiotics:
+
+```
+df["days_since_antibiotics"].unique()
+
+# create a new column based if antibiotics have been taken or not
+df["antibiotic_taken"] = df["days_since_antibiotics"].notna().map({True: "Yes", False: "No"})
+df = df.drop(columns=["days_since_antibiotics"])
+
+df["antibiotic"].unique()
+#remove empty column
+df = df.drop(columns=["antibiotic"])
+
+df["Drug_antibiotic_last3y"].unique()
+df["antibiotic_taken"] = df["Drug_antibiotic_last3y"].apply(
+    lambda x: "No" if pd.isna(x) or x == "No" else "Yes"
+)
+df = df.drop(columns=["Drug_antibiotic_last3y"])
+
+df["antibiotic_dosage"].unique()
+#remove empty column
+df = df.drop(columns=["antibiotic_dosage"])
+
+df["raw_metadata_AgeAtEnd_Antibiotic_1"].unique()
+#remove empty column
+df = df.drop(columns=["antibiotic_dosage"])
+
+
+
+
+df[""].unique()
+```
+
+
+Remove other unnecessary columns
+
+```
+columns_to_drop = [
+    "collection_date_sam",
+    "cultivation_condition",
+    "raw_metadata_Age.of.Mother",
+    "age_days",
+    "raw_metadata_AgeDischargedDays",
+    "raw_metadata_Age_at_collection"
+]
+
+df = df.drop(columns=columns_to_drop)
+```
+
+
+df.to_csv("kesken.tsv", sep="\t", index=False)
 
 
 
