@@ -49,112 +49,115 @@ comm -12 biosample_ids_sorted.txt sra_biosample_ids_sorted.txt > matched_biosamp
 wc -l matched_biosamples.txt
 # matches: 20339
 ```
-## 4. Make a new file from compressed human_all_wide_2025-10-19.tsv.gz
-
-```
-gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 > human_subset.tsv
-
-```
-
-## 4. Make a subset of matching ID's from human_all_wide_2025-10-19.tsv.gz and SRA_metadata_with_biosample_corrected.txt
+## 4. Workflow for merging SRA_metadata_with_biosample_corrected.txt and human_all_wide_2025-10-19.tsv.gz by the sample id's
 
 ```
 python
 
 import pandas as pd
+import re
 
-matched_biosamples = pd.read_csv("matched_biosamples.txt", header=None, names=["biosample"], dtype=str)
-matched_set = set(matched_ids["biosample"])
+# Set tables
 
-# Process the large file in parts
 human_file = "human_all_wide_2025-10-19.tsv.gz"
-human_subset_file = "human_subset.tsv"
+sra_file = "SRA_metadata_with_biosample_corrected.txt"
+matched_file = "matched_biosamples.txt"
+final_output = "cleaned_merged_final.tsv"
 
-chunksize = 10000
-first_chunk = True
+id_col_human = "spire_sample_name"
+id_col_sra = "biosample"
+
+chunksize = 20000  # safe for large files
+
+keywords = [
+    "bmi", "body mass", "antibiotic", "antimicrobial", "drug",
+    "sex", "gender", "age", "disease", "diagnosis", "condition",
+    "infection", "immune", "inflammation", "therapy", "treatment",
+    "amoxicillin", "ciprofloxacin", "azithromycin", "doxycycline",
+    "penicillin", "cephalexin", "metronidazole", "clindamycin",
+    "gentamicin", "trimethoprim"
+]
+keywords = [kw.lower() for kw in keywords]
+
+exclude_keywords = [
+    "sexual", "private", "identifier", "confidential", "contact",
+    "gestational", "beverages", "stage", "vitamin", "alcohol",
+    "average", "home", "sports", "strength", "siblings"
+]
+
+# 1. Load matched BioSamples
+
+matched_biosamples = pd.read_csv(
+    matched_file, header=None, names=[id_col_sra], dtype=str
+)
+matched_set = set(matched_biosamples[id_col_sra])
+print(f"Matched BioSamples: {len(matched_set)}")
+# 20339
+
+# 2. Subset human metadata by chunk
+human_subset_file = "tmp_human_subset.tsv"
+first = True
 
 for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
-    col_name = chunk.columns[2]   
-    filtered = chunk[chunk[col_name].isin(matched_set)]
-    
+    filtered = chunk[chunk[id_col_human].isin(matched_set)]
     filtered.to_csv(
         human_subset_file,
         sep="\t",
         index=False,
-        mode='w' if first_chunk else 'a',
-        header=first_chunk
+        mode="w" if first else "a",
+        header=first
     )
-    first_chunk = False
+    first = False
 
-print(f" Human table subset saved to: {human_subset_file}")
+human = pd.read_csv(human_subset_file, sep="\t", dtype=str)
+print(f"Human subset: {human.shape}")
+# (20339, 2836)
 
-# Subset the SRA metadata file
-sra_file = "SRA_metadata_with_biosample_corrected.txt"
-sra_subset_file = "SRA_subset.csv"
-
+# 3. Subset SRA metadata
 sra = pd.read_csv(sra_file, sep=",", dtype=str)
-sra_filtered = sra[sra['biosample'].isin(matched_set)]
-sra_filtered.to_csv(sra_subset_file, index=False)
+sra = sra[sra[id_col_sra].isin(matched_set)]
+print(f"SRA subset: {sra.shape}")
+# (24605, 10)
 
-print(f" SRA metadata subset saved to: {sra_subset_file}")
-
-```
-## Check both files for duplicate biosample id's
-
-```
-pyhton
-
-import pandas as pd
-
-human_df = pd.read_csv(human_subset_file, sep="\t", dtype=str)
-human_id_col = human_df.columns[2]  # 3rd column = biosample ID
-
-total_human_rows = len(human_df)
-unique_human_ids = human_df[human_id_col].nunique()
-duplicate_human_rows = total_human_rows - unique_human_ids
-
-total_sra_rows = len(sra_filtered)
-unique_sra_ids = sra_filtered["biosample"].nunique()
-duplicate_sra_rows = total_sra_rows - unique_sra_ids
-
-print(f"Human subset total rows: {total_human_rows}")
-print(f"Human subset unique BioSample IDs: {unique_human_ids}")
-print(f"Human subset duplicate rows: {duplicate_human_rows}")
-print(f"SRA subset total rows: {total_sra_rows}")
-print(f"SRA subset unique BioSample IDs: {unique_sra_ids}")
-print(f"SRA subset duplicate rows: {duplicate_sra_rows}")
-
-```
-
-## 6. Merge subsetted tables:
-
-```
-python
-
-import pandas as pd
-
-sra = pd.read_csv("SRA_subset.csv", dtype=str)
-human = pd.read_csv("human_subset.tsv", sep="\t", dtype=str)
-
-sra_id_col = "biosample"
-human_id_col = "spire_sample_name"
-
+# 4. Merge
 merged = pd.merge(
-    human,
-    sra,
-    left_on=human_id_col,
-    right_on=sra_id_col,
-    how="inner",        # keep only matched IDs
-    validate="many_to_many"  # allow duplicates in both
+    human, sra,
+    left_on=id_col_human,
+    right_on=id_col_sra,
+    how="inner",
+    validate="many_to_many"
+)
+print(f"Merged: {merged.shape}")
+# (24605, 2846)
+
+# 5. Column filtering
+def keep_keyword(c):
+    c_low = c.lower()
+    return any(kw in c_low for kw in keywords)
+
+def drop_excluded(c):
+    c_low = c.lower()
+    return any(bad in c_low for bad in exclude_keywords)
+
+always_keep = set(sra.columns.tolist() + [id_col_human])
+keyword_keep = {c for c in merged.columns if keep_keyword(c)}
+
+cols_to_keep = always_keep | keyword_keep
+cols_to_keep = sorted(
+    c for c in cols_to_keep
+    if c in merged.columns and not drop_excluded(c)
 )
 
-# Save the merged file
-merged_file = "merged_full_with_duplicates.tsv"
-merged.to_csv(merged_file, sep="\t", index=False)
+merged_clean = merged[cols_to_keep]
+print(f"Final filtered columns: {len(cols_to_keep)}")
+# 344
 
-print(f"Merged file saved to: {merged_file}")
-print(f"Total rows in merged file: {len(merged)}")
-print(f"Total columns in merged file: {len(merged.columns)}")
+
+# 6. Save final file
+
+merged_clean.to_csv(final_output, sep="\t", index=False)
+print("\n✅ Final cleaned dataset saved!")
+print(f"✅ File: {final_output}")
+print(f"✅ Shape: {merged_clean.shape}")
 
 ```
-
