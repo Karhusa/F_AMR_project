@@ -13,9 +13,8 @@ df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
 
 ```
 df = df.dropna(axis=1, how='all')
-
 print(f" Shape: {df.shape}")
-#Shape: (24605, 130)
+#Shape: (24605, 195)
 ```
 ## 3. BMI
 
@@ -122,7 +121,6 @@ def unify_age_range(rng):
 
 df[['age_start', 'age_end']] = df['age_range'].apply(lambda x: pd.Series(unify_age_range(x)))
 
-
 # Step 2 — Numeric age from range
 
 def range_to_midpoint(start, end):
@@ -160,7 +158,6 @@ def numeric_age_label(age):
         return 'Adult (≥19y)'
 
 df['age_category_numeric'] = df['age_numeric'].apply(numeric_age_label)
-
 
 # Step 5 — Merge with existing textual categories
 
@@ -212,8 +209,7 @@ columns_to_drop = [
     "raw_metadata_treatment_batch",
     "raw_metadata_PostmenstrualAgeDays",
     "raw_metadata_MaternalAgeYears",
-    "raw_metadata_Metagenomic_sequencing________(Y_or_N)",
-    "raw_metadata_Sensation_Obstruction_Blockage", 
+    "raw_metadata_Metagenomic_sequencing________(Y_or_N)", 
     "raw_metadata_age_group_16S",
     "raw_metadata_storageprotocol",
     "village",
@@ -236,7 +232,11 @@ columns_to_drop = [
 
 df = df.drop(columns=columns_to_drop)
 
+#remove separately
 #df = df.drop(columns=["raw_metadata_housing_condition"])
+
+print(f" Shape: {df.shape}")
+#24605, 163
 ```
 
 ## Save file
@@ -247,6 +247,162 @@ df.to_csv("kesken1.tsv", sep="\t", index=False)
 ```
 
 ## Antibiotics:
+
+```
+antibiotic_cols = df.columns[df.columns.str.contains("antibiotic", case=False)]
+
+for col in antibiotic_cols:
+    print(col)
+#days_since_antibiotics
+#range_days_since_antibiotics
+#raw_metadata_Antibiotics_current
+#raw_metadata_Antibiotics_past_3_months
+#raw_metadata_antibiotic_use
+#raw_metadata_antibiotics
+#raw_metadata_antibiotics_at_birth
+#raw_metadata_antibiotics_with_admission_days
+#raw_metadata_total_antibiotic_days
+
+```
+df["days_since_antibiotics"].unique()
+df["range_days_since_antibiotics"].unique()
+df["raw_metadata_Antibiotics_current"].unique()
+df["raw_metadata_Antibiotics_past_3_months"].unique()
+df["raw_metadata_antibiotic_use"].unique()
+#remove column
+df["raw_metadata_antibiotics"].unique()
+#remove column
+df["raw_metadata_antibiotics_at_birth"].unique()
+#odottaa
+df["raw_metadata_antibiotics_with_admission_days"].unique()
+#odottaa
+df["raw_metadata_total_antibiotic_days"].unique()
+
+import numpy as np
+import pandas as pd
+
+# Clean raw Yes/No metadata
+
+df["antibiotics_current"] = (
+    df["raw_metadata_Antibiotics_current"]
+    .replace({"Y": "Yes", "N": "No"})
+)
+
+df["antibiotics_past_3_months"] = (
+    df["raw_metadata_Antibiotics_past_3_months"]
+    .replace({"Y": "Yes", "N": "No"})
+)
+
+df["antibiotics_at_birth"] = (
+    df["raw_metadata_antibiotics_at_birth"]
+    .replace({"Y": "Yes", "N": "No"})
+)
+
+# Keep raw continuous data
+df["total_antibiotic_days"] = df["raw_metadata_total_antibiotic_days"]
+
+# Create cleaned time-based categories
+
+def categorize_time(days):
+    if pd.isna(days):
+        return "Unknown"
+    days = float(days)
+    if days <= 7:
+        return "0–7 days"
+    elif days <= 14:
+        return "8–14 days"
+    elif days <= 30:
+        return "15–30 days"
+    elif days <= 60:
+        return "31–60 days"
+    elif days <= 90:
+        return "61–90 days"
+    elif days <= 180:
+        return "91–180 days"
+    else:
+        return ">180 days"
+
+df["antibiotic_time_final"] = df["days_since_antibiotics"].apply(categorize_time)
+
+# Determine if antibiotics used at all
+
+def determine_antibiotic_use(row):
+    total_days = row.get("total_antibiotic_days")
+
+    # Any clear evidence of antibiotics = Yes
+    if row.get("antibiotics_current") == "Yes":
+        return "Yes"
+    if row.get("antibiotics_past_3_months") == "Yes":
+        return "Yes"
+    if pd.notnull(total_days) and total_days > 0:
+        return "Yes"
+    if row.get("antibiotics_at_birth") == "Yes":
+        return "Yes"
+
+    # Explicit No (all metadata disagree with use)
+    if (
+        row.get("antibiotics_current") == "No"
+        and row.get("antibiotics_past_3_months") == "No"
+        and row.get("antibiotics_at_birth") == "No"
+    ):
+        return "No"
+
+    # Not enough information
+    return "Unknown"
+
+df["antibiotic_use"] = df.apply(determine_antibiotic_use, axis=1)
+
+# ----------------------------------------------------
+# 4️⃣ Final study exposure variable (for all analysis)
+# ----------------------------------------------------
+
+def merge_antibiotic_exposure(row):
+
+    current = row.get("antibiotics_current")
+    past3m = row.get("antibiotics_past_3_months")
+    time = row.get("antibiotic_time_final")
+    birth = row.get("antibiotics_at_birth")
+
+    # 1️⃣ Current exposure
+    if current == "Yes":
+        return "Current antibiotics"
+
+    # 2️⃣ Strong recent exposure
+    if past3m == "Yes" or time in [
+        "0–7 days", "8–14 days", "15–30 days",
+        "31–60 days", "61–90 days"
+    ]:
+        return "Recent antibiotics"
+
+    # 3️⃣ Early-life exposure
+    if birth == "Yes":
+        return "Early-life antibiotics"
+
+    # 4️⃣ Explicit clean controls
+    if row["antibiotic_use"] == "No":
+        return "No antibiotics"
+
+    # 5️⃣ Missing/ambiguous
+    return "Unknown"
+
+df["antibiotic_exposure_group"] = df.apply(merge_antibiotic_exposure, axis=1)
+
+# Ensure logical ordering for plotting
+df["antibiotic_exposure_group"] = pd.Categorical(
+    df["antibiotic_exposure_group"],
+    categories=[
+        "Current antibiotics",
+        "Recent antibiotics",
+        "Early-life antibiotics",
+        "No antibiotics",
+        "Unknown"
+    ],
+    ordered=True
+)
+
+
+
+
 
 add_antibiotic.py
 ```
@@ -371,6 +527,13 @@ columns_to_drop = [
     "range_days_since_antibiotics",
     "raw_metadata_Antibiotics_current",
     "Antibiotics_used"
+    "raw_metadata_Treatment_(Y_or_N)",
+    raw_metadata_Total_bile_acid
+    raw_metadata_Thyroid_disease_uncertain_diagnosis_not_cancer
+    raw_metadata_Thyroid_disease
+    raw_metadata_Parkinson_disease
+    raw_metadata_Liver_disease
+    raw_metadata_Infection_Control_Means
 ]
 
 df = df.drop(columns=columns_to_drop)
