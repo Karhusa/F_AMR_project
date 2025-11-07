@@ -73,16 +73,25 @@ keywords = [
     "bmi", "body mass", "antibiotic", "antimicrobial", "drug",
     "sex", "gender", "age", "disease", "diagnosis", "condition",
     "infection", "immune", "inflammation", "therapy", "treatment",
-    "amoxicillin", "ciprofloxacin", "azithromycin", "doxycycline",
-    "penicillin", "cephalexin", "metronidazole", "clindamycin",
-    "gentamicin", "trimethoprim"
+    "cycline", "cillin", "phenicol", "bactam", "beta", "lactamase", "inhibitor",
+    "cef", "loracarbef", "flomoxef", "latamoxef", "onam", "penem", "cilastatin",
+    "cephalexin", "dazole", "mycin", "prim", "sulfa", "tylosin", "tilmicosin",
+    "tylvacosin", "tildipirosin", "macrolide", "quinupristin", "dalfopristin",
+    "xacin", "acid", "flumequine", "olaquindox", "sulfonamide", "tetracycline",
+    "nitrofuran", "amphenicol", "polymyxin", "quinolone",
+    "aminoglycoside", "teicoplanin", "vancin", "colistin", "polymyxin b",
+    "nitro", "fura", "nifru", "micin", "tiamulin", "valnemulin",
+    "xibornol", "clofoctol", "methenamine", "zolid", "lefamulins",
+    "gepotidacin", "bacitracin", "novobiocin",
+    "asthma", "cancer", "uti", "ibd", "crohn", "intestine",
+    "ulcerative", "colitis"
 ]
 keywords = [kw.lower() for kw in keywords]
 
 exclude_keywords = [
     "sexual", "private", "identifier", "confidential", "contact",
     "gestational", "beverages", "stage", "vitamin", "alcohol",
-    "average", "home", "sports", "strength", "siblings"
+    "average", "home", "sports", "strength", "siblings", "blockage"
 ]
 
 # 1. Load matched BioSamples
