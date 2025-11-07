@@ -1,201 +1,365 @@
 
-## collect columns to make a new data
+## 1. Download the data
 
 ```
 import pandas as pd
+import numpy as np
 import re
 
-# 1. Load merged file
-
-merged_file = "merged_full_with_duplicates.tsv"
-merged = pd.read_csv(merged_file, sep="\t", dtype=str, low_memory=False)
-
-print(f"Loaded merged file with {merged.shape[0]} rows and {merged.shape[1]} columns.")
-
-
-# 2. Columns to ALWAYS keep
-# (all columns from SRA metadata + spire_sample_name)
-sra_full = pd.read_csv("SRA_metadata_with_biosample_corrected.txt", sep=",", dtype=str)
-
-sra_columns = set(sra_full.columns)
-
-always_keep = set(sra_columns)
-always_keep.add("spire_sample_name")
-
-# 3. Keyword categories we WANT to keep from human metadata
-# (flexible, case-insensitive)
-
-keywords = [
-    "bmi",
-    "body mass",
-    "antibiotic",
-    "antimicrobial",
-    "drug",
-    "sex",
-    "gender",
-    "age",
-    "disease",
-    "diagnosis",
-    "condition",
-    "infection",
-    "immune",
-    "inflammation",
-    "therapy",
-    "treatment",
-    "Amoxicillin",
-    "Ciprofloxacin",
-    "Azithromycin",
-    "Doxycycline",
-    "Penicillin",
-    "Cephalexin",
-    "Metronidazole",
-    "Clindamycin",
-    "Gentamicin",
-    "Trimethoprim-sulfamethoxazole"
-]
-
-
-# 4. Keywords to EXCLUDE
-# (Columns containing these will be dropped)
-
-exclude_keywords = [
-    "sexual",       
-    "private",
-    "identifier",
-    "confidential",
-    "contact",
-    "gestational",
-    "beverages",
-    "stage",
-    "vitamin",
-    "alcohol",
-    "average",
-    "home",
-    "sports",
-    "strength",
-    "siblings"
-]
-
-
-def is_unwanted(col):
-    col_low = col.lower()
-    return any(bad in col_low for bad in exclude_keywords)
-
-# 5. Determine which columns match keyword categories
-
-def matches_category(col):
-    col_low = col.lower()
-    return any(re.search(rf"{kw}", col_low) for kw in keywords)
-
-keyword_columns = {c for c in merged.columns if matches_category(c)}
-
-# 6. Compute the final set of columns to keep
-
-columns_to_keep = (always_keep | keyword_columns)
-
-columns_to_keep = {c for c in columns_to_keep if not is_unwanted(c)}
-
-columns_to_keep = sorted([c for c in columns_to_keep if c in merged.columns])
-
-print(f"\nTotal columns kept: {len(columns_to_keep)}")
-
-# 7. Create cleaned dataframe
-
-merged_cleaned = merged[columns_to_keep]
-
-# 8. Save output
-
-output_file = "merged_filtered_cleaned.tsv"
-merged_cleaned.to_csv(output_file, sep="\t", index=False)
-
-print(f"\n✅ Cleaned dataset saved to: {output_file}")
-print(f"✅ Final shape: {merged_cleaned.shape[0]} rows x {merged_cleaned.shape[1]} columns")
-
+df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
 ```
 
+## 2. Remove columns with no values
 
 ```
-df = pd.read_csv("merged_filtered_cleaned.tsv", sep="\t")
-```
-Remove columns with no values
-
-```
-# Drop columns that are entirely empty (all NaN)
 df = df.dropna(axis=1, how='all')
 
+print(f" Shape: {df.shape}")
+#Shape: (24605, 130)
 ```
-
-BMI
-
-```
-df = pd.read_csv("merged_filtered_cleaned.tsv", sep="\t")
-
-df["BMI_range"].unique()
-df["bmi"].unique()
-df["bmi_range"].unique()
-
-df.loc[df["BMI_range"].isna() & (df["bmi"] < 30), "BMI_range"] = "<30"
-df.loc[df["BMI_range"].isna() & (df["bmi"] >= 30), "BMI_range"] = ">30"
-
-
-import numpy as np
-
-def simplify_bmi_range(x):
-    if pd.isna(x):
-        return np.nan
-    x = str(x).lower().strip()
-    # Treat anything that mentions "over 25" as ">30"
-    if "over" in x:
-        return ">30"
-    # Extract numbers and take the max in the range
-    numbers = [float(s) for s in x.replace("+", "").replace("-", " ").split() if s.replace(".", "").isdigit()]
-    if len(numbers) == 0:
-        return np.nan
-    return ">30" if max(numbers) >= 30 else "<30"
-
-df["BMI_range"] = df["bmi_range"].apply(simplify_bmi_range)
+## 3. BMI
 
 ```
-Antibiotics:
+bmi_cols = df.columns[df.columns.str.contains("bmi", case=False)]
+print(bmi_cols)
 
-```
-df["days_since_antibiotics"].unique()
+df["bmi"] = pd.to_numeric(df["bmi"], errors="coerce")
 
-# create a new column based if antibiotics have been taken or not
-df["antibiotic_taken"] = df["days_since_antibiotics"].notna().map({True: "Yes", False: "No"})
-df = df.drop(columns=["days_since_antibiotics"])
+bins = [0, 18.5, 25, 30, float("inf")]
+labels = [
+    "Underweight (<18.5)",
+    "Normal (18.5-25)",
+    "Overweight (25-30)",
+    "Obese (>30)"
+]
 
-df["antibiotic"].unique()
-#remove empty column
-df = df.drop(columns=["antibiotic"])
-
-df["Drug_antibiotic_last3y"].unique()
-df["antibiotic_taken"] = df["Drug_antibiotic_last3y"].apply(
-    lambda x: "No" if pd.isna(x) or x == "No" else "Yes"
+df["BMI_range_new"] = pd.cut(
+    df["bmi"],
+    bins=bins,
+    labels=labels
 )
-df = df.drop(columns=["Drug_antibiotic_last3y"])
 
-df["antibiotic_dosage"].unique()
-#remove empty column
-df = df.drop(columns=["antibiotic_dosage"])
+# Override using `bmi_range` text values
 
-df["raw_metadata_AgeAtEnd_Antibiotic_1"].unique()
-#remove empty column
-df = df.drop(columns=["antibiotic_dosage"])
+bmi_range_map = {
+    "16-20": "Underweight (<18.5)",
+    "18.5-28": "Normal (18.5-25)",
+    "20-25": "Normal (18.5-25)",
+    "25-30": "Overweight (25-30)",
+    "over 25": "Overweight (25-30)",  # assume not obese unless BMI numeric says so
+}
 
-df["raw_metadata_antibiotic_use"].unique()
-#remove empty column
-df = df.drop(columns=["raw_metadata_antibiotic_use"])
+mask = df["bmi_range"].notna()
+df.loc[mask, "BMI_range_new"] = (
+    df.loc[mask, "bmi_range"].map(bmi_range_map)
+)
 
-df["raw_metadata_Antibiotics_current"].unique()
+if not pd.api.types.is_categorical_dtype(df["BMI_range_new"]):
+    df["BMI_range_new"] = df["BMI_range_new"].astype("category")
 
-df["antibiotic_taken"] = df["raw_metadata_Antibiotics_current"].map({
-    "Y": "Yes",
-    "N": "No"
-})
+new_categories = ["Obese (>30)", "Normal/Overweight (<30)"]
+existing = df["BMI_range_new"].cat.categories
+
+to_add = [cat for cat in new_categories if cat not in existing]
+
+df["BMI_range_new"] = df["BMI_range_new"].cat.add_categories(to_add)
+
+BMI_range_map = {
+    ">30": "Obese (>30)",
+    "<30": "Normal/Overweight (<30)"
+}
+
+mask2 = df["BMI_range"].notna()
+df.loc[mask2, "BMI_range_new"] = (
+    df.loc[mask2, "BMI_range"].map(BMI_range_map)
+)
+
+# Review
+print(df["BMI_range_new"].value_counts(dropna=False))
+print(df[["bmi", "bmi_range", "BMI_range", "BMI_range_new"]].head(10))
+
+df["raw_metadata_bmi_for_age_z_score"].unique()
+# remove column
+
+```
+
+## 3. Age
+
+```
+age_cols = df.columns[df.columns.str.contains("age", case=False)]
+print(age_cols)
+
+df["age_days"].unique()
+# remove column
+df["age_years"].unique()
+df["age_category"].unique()
+df["age_range"].unique()
+
+def unify_age_range(rng):
+    if pd.isna(rng):
+        return np.nan, np.nan
+    rng = str(rng).lower().strip()
+    
+    if rng in ['baby', 'child', 'adolescent', 'adult']:
+        return rng, rng
+    
+    match = re.findall(r'\d*\.?\d+', rng)
+    if len(match) == 2:
+        return float(match[0]), float(match[1])
+    
+    match_over = re.search(r'over (\d*\.?\d+)', rng)
+    if match_over:
+        return float(match_over.group(1)), np.inf
+    
+    match_below = re.search(r'(?:below|under) (\d*\.?\d+)', rng)
+    if match_below:
+        return 0, float(match_below.group(1))
+    
+    if len(match) == 1:
+        return float(match[0]), float(match[0])
+    
+    return np.nan, np.nan
+
+df[['age_start', 'age_end']] = df['age_range'].apply(lambda x: pd.Series(unify_age_range(x)))
 
 
-df[""].unique()
+# Step 2 — Numeric age from range
+
+def range_to_midpoint(start, end):
+    if isinstance(start, str):  # textual category
+        return np.nan
+    if end == np.inf:
+        return start + 1
+    return (start + end) / 2
+
+df['age_numeric_from_range'] = df.apply(lambda row: range_to_midpoint(row['age_start'], row['age_end']), axis=1)
+
+# Step 3 — Combine numeric age
+
+df['age_numeric'] = df['age_years']
+
+mask_days = df['age_numeric'].isna() & df['age_days'].notna()
+df.loc[mask_days, 'age_numeric'] = df.loc[mask_days, 'age_days'] / 365
+
+mask_range = df['age_numeric'].isna() & df['age_numeric_from_range'].notna()
+df.loc[mask_range, 'age_numeric'] = df.loc[mask_range, 'age_numeric_from_range']
+
+
+# Step 4 — Assign labeled age category
+
+def numeric_age_label(age):
+    if pd.isna(age):
+        return 'Unknown age'
+    if age < 1.0:
+        return 'Baby (0–1y)'
+    elif age < 10:
+        return 'Child (1–9y)'
+    elif age < 20:
+        return 'Adolescent (10–19y)'
+    else:
+        return 'Adult (≥19y)'
+
+df['age_category_numeric'] = df['age_numeric'].apply(numeric_age_label)
+
+
+# Step 5 — Merge with existing textual categories
+
+category_map = {
+    'baby': 'Baby (0–1y)',
+    'child': 'Child (1–9y)',
+    'adolescent': 'Adolescent (10–19y)',
+    'adult': 'Adult (≥19y)'
+}
+
+def clean_age_category_label(existing_cat, numeric_cat):
+    if pd.isna(existing_cat):
+        return numeric_cat
+    categories = [c.strip() for c in str(existing_cat).split(',')]
+    categories_mapped = [category_map.get(c, c) for c in categories]
+    if numeric_cat in categories_mapped:
+        return numeric_cat
+    order = ['Baby (0–1y)', 'Child (1–9y)', 'Adolescent (10–19y)', 'Adult (≥19y)']
+    sorted_cats = sorted(categories_mapped, key=lambda x: order.index(x))
+    return sorted_cats[0]
+
+df['age_category_new'] = df.apply(
+    lambda row: clean_age_category_label(row['age_category'], row['age_category_numeric']), axis=1
+)
+
+```
+
+## Remove columns that are no longer needed
+
+```
+columns_to_drop = [
+    "bmi_range",
+    "bmi",
+    "BMI_range",
+    "age_days",
+    "age_range",
+    "age_category",
+    "age_years",
+    "raw_metadata_Antibiotics_Last3months",
+    "raw_metadata_Autoimmune_hemolytic_anemia",
+    "raw_metadata_Autoimmune_hepatitis",
+    "raw_metadata_BloodInfection",
+    "raw_metadata_Sex_Trade_Worker",
+    "raw_metadata_age-block",
+    "raw_metadata_age_of_onset",
+    "raw_metadata_body_fat_percentage",
+    "raw_metadata_height_for_age_z_score",
+    "raw_metadata_maternal_age_at_delivery_years",
+    "raw_metadata_treatment_batch",
+    "raw_metadata_PostmenstrualAgeDays",
+    "raw_metadata_MaternalAgeYears",
+    "raw_metadata_Metagenomic_sequencing________(Y_or_N)",
+    "raw_metadata_Sensation_Obstruction_Blockage", 
+    "raw_metadata_age_group_16S",
+    "raw_metadata_storageprotocol",
+    "village",
+    "Drug_antibiotic_last3y",
+    "raw_metadata_AgeDischargedDays",
+    "raw_metadata_Age_at_collection",
+    "raw_metadata_Age_at_diagnosis",
+    "raw_metadata_Condition",
+    "raw_metadata_Drug_insulin",
+    "raw_metadata_Drug_statins",
+    "raw_metadata_Treatment_duration_(months)",
+    "raw_metadata_age_at_diagnosis",
+    "raw_metadata_diagnosis_date",
+    "raw_metadata_disease_duration",
+    "raw_metadata_disease_duration_year",
+    "raw_metadata_disease_duration_years",
+    "raw_metadata_disease_extent",
+    "raw_metadata_housing_condition",
+]
+
+df = df.drop(columns=columns_to_drop)
+
+#df = df.drop(columns=["raw_metadata_housing_condition"])
+```
+
+## Save file
+
+```
+df.to_csv("kesken1.tsv", sep="\t", index=False)
+
+```
+
+## Antibiotics:
+
+add_antibiotic.py
+```
+def add_antibiotic_columns(df):
+    # ---- Timing classifier ----
+    def classify_timing(days):
+        if pd.isna(days):
+            return None
+        if days == 0:
+            return "Today"
+        if 1 <= days <= 7:
+            return "Recent (1–7d)"
+        if 8 <= days <= 30:
+            return "Past month (8–30d)"
+        if 31 <= days <= 60:
+            return "2 months ago (31–60d)"
+        if 61 <= days <= 90:
+            return "3 months ago (61–90d)"
+        return ">3 months ago (>90d)"
+    
+    range_map = {
+        "0-30": "Past month (8–30d)",
+        "0-90": "3 months ago (61–90d)",
+        "0-180": ">3 months ago (>90d)",
+        "30-180": ">3 months ago (>90d)",
+    }
+    
+    meta3_map = {
+        "Yes, 2 months ago": "2 months ago (31–60d)",
+        "No": "No data",
+    }
+
+    # Initialize with exact-days data
+    df["Antibiotics_label"] = df["days_since_antibiotics"].apply(classify_timing)
+
+    # Apply in descending priority
+    if "range_days_since_antibiotics" in df.columns:
+        mask = df["range_days_since_antibiotics"].notna()
+        df.loc[mask, "Antibiotics_label"] = (
+            df.loc[mask, "range_days_since_antibiotics"].map(range_map)
+        )
+
+    if "raw_metadata_Antibiotics_Last3months" in df.columns:
+        mask = df["raw_metadata_Antibiotics_Last3months"].notna()
+        df.loc[mask, "Antibiotics_label"] = (
+            df.loc[mask, "raw_metadata_Antibiotics_Last3months"].map(meta3_map)
+        )
+
+    if "raw_metadata_Antibiotics_current" in df.columns:
+        df.loc[df["raw_metadata_Antibiotics_current"] == "Y", "Antibiotics_label"] = "Today"
+
+    # Final category enforcement
+    categories = [
+        "Today", "Recent (1–7d)", "Past month (8–30d)",
+        "2 months ago (31–60d)", "3 months ago (61–90d)",
+        ">3 months ago (>90d)", "No data"
+    ]
+    df["Antibiotics_label"] = pd.Categorical(df["Antibiotics_label"],
+                                             categories=categories,
+                                             ordered=True)
+
+    # ---- Yes/No/Unknown exposure ----
+    def flag(row):
+        if "raw_metadata_Antibiotics_current" in df.columns:
+            if row["raw_metadata_Antibiotics_current"] == "Y":
+                return "Yes"
+            if row["raw_metadata_Antibiotics_current"] == "N":
+                return "No"
+
+        if pd.notna(row["days_since_antibiotics"]) and row["days_since_antibiotics"] > 0:
+            return "Yes"
+
+        if "raw_metadata_Antibiotics_Last3months" in df.columns:
+            if row["raw_metadata_Antibiotics_Last3months"] == "No":
+                return "No"
+
+        if "raw_metadata_antibiotic_use" in df.columns:
+            if row["raw_metadata_antibiotic_use"] == "No":
+                return "No"
+
+        return "Unknown"
+
+    df["Antibiotics_used"] = df.apply(flag, axis=1)
+    df["Antibiotics_used"] = pd.Categorical(df["Antibiotics_used"],
+                                            categories=["Yes", "No", "Unknown"],
+                                            ordered=True)
+
+    return df
+
+```
+
+
+```
+bash
+
+nano add_antibiotic.py
+
+python3
+
+```
+
+
+```
+
+import pandas as pd
+from add_antibiotics import add_antibiotic_columns
+
+df = pd.read_csv("kesken1.tsv", sep="\t")
+
+df = add_antibiotic_columns(df)
+
+df.to_csv("kesken2.tsv", sep="\t", index=False)
+
 ```
 
 
@@ -203,21 +367,18 @@ Remove other unnecessary columns
 
 ```
 columns_to_drop = [
-    "collection_date_sam",
-    "cultivation_condition",
-    "raw_metadata_Age.of.Mother",
-    "age_days",
-    "raw_metadata_AgeDischargedDays",
-    "raw_metadata_Age_at_collection",
-    "raw_metadata_Age_at_diagnosis",
-    "raw_metadata_Antibiotics_Last3months"
+    "days_since_antibiotics",
+    "range_days_since_antibiotics",
+    "raw_metadata_Antibiotics_current",
+    "Antibiotics_used"
 ]
 
 df = df.drop(columns=columns_to_drop)
 ```
 
 
-df.to_csv("kesken.tsv", sep="\t", index=False)
+df.to_csv("kesken2.tsv", sep="\t", index=False)
+
 
 
 
