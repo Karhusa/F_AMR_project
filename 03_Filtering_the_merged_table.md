@@ -84,6 +84,8 @@ df["raw_metadata_bmi_for_age_z_score"].unique()
 
 ## 3. Age
 
+# ! add this: df["raw_metadata_age_group"].unique()
+
 ```
 age_cols = df.columns[df.columns.str.contains("age", case=False)]
 print(age_cols)
@@ -247,6 +249,47 @@ df = pd.read_csv("kesken1.tsv", sep="\t")
 ```
 ## Antibiotics:
 
+## Columns with name of the antibiotic
+
+```
+antibiotic_cols_w = [c for c in df.columns if c.startswith("raw_metadata_w_")]
+antibiotic_cols_c = [c for c in df.columns if c.startswith("raw_metadata_c_")]
+antibiotic_cols_m = [c for c in df.columns if c.startswith("raw_metadata_m_")]
+
+all_antibiotic_cols = antibiotic_cols_w + antibiotic_cols_c + antibiotic_cols_m
+
+# Create a list of used antibiotics for each patient
+def get_antibiotics_list(row):
+    used = []
+    for col in all_antibiotic_cols:
+        if row[col] == 1:
+            name = col.replace("raw_metadata_w_", "") \
+                      .replace("raw_metadata_c_", "") \
+                      .replace("raw_metadata_m_", "")
+            used.append(name)
+    return used  # return a list
+
+df["antibiotics_list"] = df.apply(get_antibiotics_list, axis=1)
+
+antibiotics_expanded = pd.DataFrame(
+    df["antibiotics_list"].to_list(),
+    index=df.index
+).rename(lambda x: f"antibiotic_{x+1}", axis=1)
+
+# Join back to original df
+df = df.join(antibiotics_expanded)
+
+# Optionally drop the temporary list column
+df = df.drop(columns="antibiotics_list")
+
+#remove unnecessary columns
+
+df = df.drop(columns=all_antibiotic_cols)
+
+df.to_csv("kesken3.tsv", sep="\t", index=False)
+
+```
+
 ### Look through the columns
 ```
 antibiotic_cols = df.columns[df.columns.str.contains("antibiotic", case=False)]
@@ -355,20 +398,21 @@ def merge_antibiotic_exposure(row):
 
     if current == "Yes":
         return "Current antibiotics"
-
     if birth == "Yes":
         return "Early-life antibiotics"
-
     if past3m == "Yes" or time in [
-        "0–7 days", "8–14 days", "15–30 days",
-        "31–60 days", "61–90 days"
+        "0–7 days", "8–14 days", "15–30 days", "31–60 days", "61–90 days"
     ]:
         return "Recent antibiotics"
-
-    if row["antibiotic_use"] == "No":
+    if (
+        current == "No"
+        and past3m == "No"
+        and birth == "No"
+    ):
         return "No antibiotics"
-
     return "Unknown"
+
+df["antibiotic_exposure_group"] = df.apply(merge_antibiotic_exposure, axis=1)
 
 # Ensure logical ordering for plotting
 df["antibiotic_exposure_group"] = pd.Categorical(
@@ -383,49 +427,56 @@ df["antibiotic_exposure_group"] = pd.Categorical(
     ordered=True
 )
 
-
-
-
-
-
-
-```
-
-import pandas as pd
-from add_antibiotics import add_antibiotic_columns
-
-df = pd.read_csv("kesken1.tsv", sep="\t")
-
-df = add_antibiotic_columns(df)
-
 df.to_csv("kesken2.tsv", sep="\t", index=False)
-
 ```
-
-
-Remove other unnecessary columns
+## Remove other unnecessary columns
 
 ```
 columns_to_drop = [
-    "days_since_antibiotics",
-    "range_days_since_antibiotics",
-    "raw_metadata_Antibiotics_current",
-    "Antibiotics_used"
-    "raw_metadata_Treatment_(Y_or_N)",
-    raw_metadata_Total_bile_acid
-    raw_metadata_Thyroid_disease_uncertain_diagnosis_not_cancer
-    raw_metadata_Thyroid_disease
-    raw_metadata_Parkinson_disease
-    raw_metadata_Liver_disease
-    raw_metadata_Infection_Control_Means
+"days_since_antibiotics",
+"range_days_since_antibiotics",
+"raw_metadata_Antibiotics_current",
+"raw_metadata_Antibiotics_past_3_months",
+"raw_metadata_antibiotic_use",
+"raw_metadata_antibiotics",
+"raw_metadata_antibiotics_with_admission_days",
+"raw_metadata_total_antibiotic_days"
+
 ]
 
 df = df.drop(columns=columns_to_drop)
 ```
 
 
-df.to_csv("kesken2.tsv", sep="\t", index=False)
+## Infections
 
+```
+infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
+print(infection_cols) 
+
+raw_metadata_Infection_CRE
+
+df["raw_metadata_Infection_CRE"].unique()
+
+def get_infections_list(row):
+    infections = []
+    for col in infection_cols:
+        if row[col] == 1:  # 1 = present
+            # Remove prefix
+            name = col.replace("raw_metadata_Infection_", "")
+            infections.append(name)
+    return ", ".join(infections) if infections else "None"
+
+df["Infection"] = df.apply(get_infections_list, axis=1)
+
+
+df = df.drop(columns=infection_cols)
+
+df["infection"].value_counts()
+
+df.to_csv("kesken3.tsv", sep="\t", index=False)
+
+```
 
 
 
