@@ -239,15 +239,15 @@ print(f" Shape: {df.shape}")
 #24605, 163
 ```
 
-## Save file
+## Save file for later use so that you can reload and modify it again
 
 ```
 df.to_csv("kesken1.tsv", sep="\t", index=False)
-
+df = pd.read_csv("kesken1.tsv", sep="\t")
 ```
-
 ## Antibiotics:
 
+### Look through the columns
 ```
 antibiotic_cols = df.columns[df.columns.str.contains("antibiotic", case=False)]
 
@@ -263,7 +263,6 @@ for col in antibiotic_cols:
 #raw_metadata_antibiotics_with_admission_days
 #raw_metadata_total_antibiotic_days
 
-```
 df["days_since_antibiotics"].unique()
 df["range_days_since_antibiotics"].unique()
 df["raw_metadata_Antibiotics_current"].unique()
@@ -277,12 +276,10 @@ df["raw_metadata_antibiotics_at_birth"].unique()
 df["raw_metadata_antibiotics_with_admission_days"].unique()
 #odottaa
 df["raw_metadata_total_antibiotic_days"].unique()
+```
 
-import numpy as np
-import pandas as pd
-
-# Clean raw Yes/No metadata
-
+## Create metadata
+```
 df["antibiotics_current"] = (
     df["raw_metadata_Antibiotics_current"]
     .replace({"Y": "Yes", "N": "No"})
@@ -324,8 +321,6 @@ def categorize_time(days):
 
 df["antibiotic_time_final"] = df["days_since_antibiotics"].apply(categorize_time)
 
-# Determine if antibiotics used at all
-
 def determine_antibiotic_use(row):
     total_days = row.get("total_antibiotic_days")
 
@@ -347,45 +342,33 @@ def determine_antibiotic_use(row):
     ):
         return "No"
 
-    # Not enough information
     return "Unknown"
 
-df["antibiotic_use"] = df.apply(determine_antibiotic_use, axis=1)
+df["antibiotic_time_final"] = df["total_antibiotic_days"].apply(categorize_time)
 
-# ----------------------------------------------------
-# 4️⃣ Final study exposure variable (for all analysis)
-# ----------------------------------------------------
 
 def merge_antibiotic_exposure(row):
-
     current = row.get("antibiotics_current")
     past3m = row.get("antibiotics_past_3_months")
     time = row.get("antibiotic_time_final")
     birth = row.get("antibiotics_at_birth")
 
-    # 1️⃣ Current exposure
     if current == "Yes":
         return "Current antibiotics"
 
-    # 2️⃣ Strong recent exposure
+    if birth == "Yes":
+        return "Early-life antibiotics"
+
     if past3m == "Yes" or time in [
         "0–7 days", "8–14 days", "15–30 days",
         "31–60 days", "61–90 days"
     ]:
         return "Recent antibiotics"
 
-    # 3️⃣ Early-life exposure
-    if birth == "Yes":
-        return "Early-life antibiotics"
-
-    # 4️⃣ Explicit clean controls
     if row["antibiotic_use"] == "No":
         return "No antibiotics"
 
-    # 5️⃣ Missing/ambiguous
     return "Unknown"
-
-df["antibiotic_exposure_group"] = df.apply(merge_antibiotic_exposure, axis=1)
 
 # Ensure logical ordering for plotting
 df["antibiotic_exposure_group"] = pd.Categorical(
@@ -404,105 +387,6 @@ df["antibiotic_exposure_group"] = pd.Categorical(
 
 
 
-add_antibiotic.py
-```
-def add_antibiotic_columns(df):
-    # ---- Timing classifier ----
-    def classify_timing(days):
-        if pd.isna(days):
-            return None
-        if days == 0:
-            return "Today"
-        if 1 <= days <= 7:
-            return "Recent (1–7d)"
-        if 8 <= days <= 30:
-            return "Past month (8–30d)"
-        if 31 <= days <= 60:
-            return "2 months ago (31–60d)"
-        if 61 <= days <= 90:
-            return "3 months ago (61–90d)"
-        return ">3 months ago (>90d)"
-    
-    range_map = {
-        "0-30": "Past month (8–30d)",
-        "0-90": "3 months ago (61–90d)",
-        "0-180": ">3 months ago (>90d)",
-        "30-180": ">3 months ago (>90d)",
-    }
-    
-    meta3_map = {
-        "Yes, 2 months ago": "2 months ago (31–60d)",
-        "No": "No data",
-    }
-
-    # Initialize with exact-days data
-    df["Antibiotics_label"] = df["days_since_antibiotics"].apply(classify_timing)
-
-    # Apply in descending priority
-    if "range_days_since_antibiotics" in df.columns:
-        mask = df["range_days_since_antibiotics"].notna()
-        df.loc[mask, "Antibiotics_label"] = (
-            df.loc[mask, "range_days_since_antibiotics"].map(range_map)
-        )
-
-    if "raw_metadata_Antibiotics_Last3months" in df.columns:
-        mask = df["raw_metadata_Antibiotics_Last3months"].notna()
-        df.loc[mask, "Antibiotics_label"] = (
-            df.loc[mask, "raw_metadata_Antibiotics_Last3months"].map(meta3_map)
-        )
-
-    if "raw_metadata_Antibiotics_current" in df.columns:
-        df.loc[df["raw_metadata_Antibiotics_current"] == "Y", "Antibiotics_label"] = "Today"
-
-    # Final category enforcement
-    categories = [
-        "Today", "Recent (1–7d)", "Past month (8–30d)",
-        "2 months ago (31–60d)", "3 months ago (61–90d)",
-        ">3 months ago (>90d)", "No data"
-    ]
-    df["Antibiotics_label"] = pd.Categorical(df["Antibiotics_label"],
-                                             categories=categories,
-                                             ordered=True)
-
-    # ---- Yes/No/Unknown exposure ----
-    def flag(row):
-        if "raw_metadata_Antibiotics_current" in df.columns:
-            if row["raw_metadata_Antibiotics_current"] == "Y":
-                return "Yes"
-            if row["raw_metadata_Antibiotics_current"] == "N":
-                return "No"
-
-        if pd.notna(row["days_since_antibiotics"]) and row["days_since_antibiotics"] > 0:
-            return "Yes"
-
-        if "raw_metadata_Antibiotics_Last3months" in df.columns:
-            if row["raw_metadata_Antibiotics_Last3months"] == "No":
-                return "No"
-
-        if "raw_metadata_antibiotic_use" in df.columns:
-            if row["raw_metadata_antibiotic_use"] == "No":
-                return "No"
-
-        return "Unknown"
-
-    df["Antibiotics_used"] = df.apply(flag, axis=1)
-    df["Antibiotics_used"] = pd.Categorical(df["Antibiotics_used"],
-                                            categories=["Yes", "No", "Unknown"],
-                                            ordered=True)
-
-    return df
-
-```
-
-
-```
-bash
-
-nano add_antibiotic.py
-
-python3
-
-```
 
 
 ```
