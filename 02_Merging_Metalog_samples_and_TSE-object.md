@@ -159,7 +159,7 @@ cols_to_keep = sorted(
 
 merged_clean = merged[cols_to_keep]
 print(f"Final filtered columns: {len(cols_to_keep)}")
-# 344
+# 465
 
 # 6. Save final file
 merged_clean.to_csv(final_output, sep="\t", index=False)
