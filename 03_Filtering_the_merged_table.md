@@ -252,38 +252,36 @@ df = pd.read_csv("kesken1.tsv", sep="\t")
 ## Columns with name of the antibiotic
 
 ```
-antibiotic_cols_w = [c for c in df.columns if c.startswith("raw_metadata_w_")]
-antibiotic_cols_c = [c for c in df.columns if c.startswith("raw_metadata_c_")]
-antibiotic_cols_m = [c for c in df.columns if c.startswith("raw_metadata_m_")]
+antibiotic_w_cols = [c for c in df.columns if c.startswith("raw_metadata_w_")]
+antibiotic_c_cols = [c for c in df.columns if c.startswith("raw_metadata_c_")]
+antibiotic_m_cols = [c for c in df.columns if c.startswith("raw_metadata_m_")]
 
-all_antibiotic_cols = antibiotic_cols_w + antibiotic_cols_c + antibiotic_cols_m
+all_antibiotic_cols = antibiotic_w_cols + antibiotic_c_cols + antibiotic_m_cols
 
-# Create a list of used antibiotics for each patient
-def get_antibiotics_list(row):
-    used = []
+# 2️⃣ Convert antibiotic names into a list for each patient
+def get_antibiotics(row):
+    antibiotics = []
     for col in all_antibiotic_cols:
-        if row[col] == 1:
+        val = row[col]
+        if pd.notnull(val) and float(val) > 0: 
             name = col.replace("raw_metadata_w_", "") \
                       .replace("raw_metadata_c_", "") \
-                      .replace("raw_metadata_m_", "")
-            used.append(name)
-    return used  # return a list
+                      .replace("raw_metadata_m_", "") \
+                      .replace("_", " ")
+            antibiotics.append(name)
+    return antibiotics
 
-df["antibiotics_list"] = df.apply(get_antibiotics_list, axis=1)
+df["antibiotics_list"] = df.apply(get_antibiotics, axis=1)
 
-antibiotics_expanded = pd.DataFrame(
-    df["antibiotics_list"].to_list(),
-    index=df.index
-).rename(lambda x: f"antibiotic_{x+1}", axis=1)
+# 3️⃣ Expand into multiple columns: antibiotic_1, antibiotic_2, ...
+max_antibiotics = df["antibiotics_list"].apply(len).max()
 
-# Join back to original df
-df = df.join(antibiotics_expanded)
+for i in range(max_antibiotics):
+    df[f"antibiotic_{i+1}"] = df["antibiotics_list"].apply(
+        lambda x: x[i] if len(x) > i else None
+    )
 
-# Optionally drop the temporary list column
-df = df.drop(columns="antibiotics_list")
-
-#remove unnecessary columns
-
+# 4️⃣ Remove original antibiotic columns — optional but cleaner
 df = df.drop(columns=all_antibiotic_cols)
 
 df.to_csv("kesken3.tsv", sep="\t", index=False)
@@ -451,28 +449,54 @@ df = df.drop(columns=columns_to_drop)
 ## Infections
 
 ```
-infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
-print(infection_cols) 
+df = pd.read_csv("kesken2.tsv", sep="\t")
 
-raw_metadata_Infection_CRE
+infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
+print(infection_cols)
+#['raw_metadata_Infection_CRE', 'raw_metadata_Infection_Control_Means', 'raw_metadata_Infection_ESBLs', 'raw_metadata_Infection_MRSA', 'raw_metadata_Infection_Other', 'raw_metadata_Infection_VRE']
 
 df["raw_metadata_Infection_CRE"].unique()
 
-def get_infections_list(row):
-    infections = []
-    for col in infection_cols:
-        if row[col] == 1:  # 1 = present
-            # Remove prefix
-            name = col.replace("raw_metadata_Infection_", "")
-            infections.append(name)
-    return ", ".join(infections) if infections else "None"
+df["raw_metadata_Infection_Control_Means"].unique()
+array([nan, 'No'], dtype=object)
 
-df["Infection"] = df.apply(get_infections_list, axis=1)
+df["raw_metadata_Infection_ESBLs"].unique()
+array([nan, 'Cohorted', 'Isolated', 'Outpatient'], dtype=object)
 
+df["raw_metadata_Infection_MRSA"].unique()
+array([nan, 'No'], dtype=object)
+
+df["raw_metadata_Infection_Other"].unique()
+array([nan, 'Cohorted', 'Isolated', 'Outpatient'], dtype=object)
+
+df["raw_metadata_Infection_VRE"].unique()
+array([nan, 'No'], dtype=object)
 
 df = df.drop(columns=infection_cols)
 
-df["infection"].value_counts()
+
+df.to_csv("kesken3.tsv", sep="\t", index=False)
+
+```
+## Cancer
+
+```
+cancer_cols = [c for c in df.columns if c.startswith("raw_metadata_Cancer_")]
+
+def get_cancer_list(row):
+    cancers = []
+    for col in cancer_cols:
+        if row[col] == 1: 
+            # remove prefix and clean underscores
+            name = col.replace("raw_metadata_Cancer_", "").replace("_", " ")
+            cancers.append(name)
+    return ", ".join(cancers) if cancers else "None"
+
+df["Cancer"] = df.apply(get_cancer_list, axis=1)
+
+
+df = df.drop(columns=cancer_cols)
+
 
 df.to_csv("kesken3.tsv", sep="\t", index=False)
 
