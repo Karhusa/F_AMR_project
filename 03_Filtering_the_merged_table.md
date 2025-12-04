@@ -333,3 +333,108 @@ print(f" Shape: {df.shape}")
 
 df.to_csv("kesken1.tsv", sep="\t", index=False)
 ```
+## 14. UTI columns
+```
+# 1. Load the data
+df = pd.read_csv("kesken1.tsv", sep="\t")
+
+# 2. Find UTI columns
+uti_cols = [col for col in df.columns if "uti" in col.lower()]
+print("UTI columns:", uti_cols)
+
+for col in uti_cols:
+    print(f"Column: {col}")
+    print(df[col].unique())
+    print()
+
+# Create new column indicating if patient ever had a UTI
+df["UTI_history"] = np.where(
+    ((df.get("raw_metadata_UTIs", np.nan) > 0) & df.get("raw_metadata_UTIs").notna()) |
+    ((df.get("raw_metadata_diagnosed_utis", np.nan) == 1) & df.get("raw_metadata_diagnosed_utis").notna()) |
+    ((df.get("raw_metadata_ecoli_utis", np.nan) == 1) & df.get("raw_metadata_ecoli_utis").notna()) |
+    (df.get("raw_metadata_history_of_recurrent_uti") == "Recurrent UTIs"),
+    "Yes",
+    "No"
+)
+
+# Remove original UTI columns
+columns_to_remove = [
+    "raw_metadata_UTIs",
+    "raw_metadata_diagnosed_utis",
+    "raw_metadata_ecoli_utis",
+    "raw_metadata_history_of_recurrent_uti"
+]
+df = df.drop(columns=[col for col in columns_to_remove if col in df.columns])
+
+# Check new column
+print(df["UTI_history"].value_counts(dropna=False))
+
+# No     24449
+# Yes      156
+
+```
+# 15. Age columns
+
+```
+age_cols = [col for col in df.columns if "age" in col.lower()]
+print("Age columns:", age_cols)
+
+df = df.drop(columns=["age_days"]) # babys age in days
+
+def range_to_midpoint(x):
+    if pd.isna(x):
+        return np.nan
+    nums = [float(n) for n in re.findall(r"\d+\.?\d*", str(x))]
+    if len(nums) == 2:
+        return np.mean(nums)
+    elif len(nums) == 1:
+        return nums[0]
+    return np.nan
+
+def combine_age(row):
+    numeric = row["age_years"]
+    rng = row["age_range"]
+    
+    # If age_years exists → keep numeric
+    if pd.notna(numeric):
+        return numeric
+    
+    # If age_years missing but age_range exists → "50 to 64 (57)"
+    if pd.notna(rng):
+        midpoint = range_to_midpoint(rng)
+        return f"{rng} ({midpoint:.0f})"
+    
+    return np.nan
+
+df["age_years"] = df.apply(combine_age, axis=1)
+
+
+df = df.drop(columns=["age_range"]) # babys age in days
+
+```
+
+df.to_csv("kesken2.tsv", sep="\t", index=False)
+
+16. Antibiotics
+
+
+```
+antibiotic_cols = df.columns[df.columns.str.contains("antibiotic", case=False)]
+
+for col in antibiotic_cols:
+    print(f"\n=== {col} ===")
+    print(df[col].value_counts(dropna=False).head(10))
+
+# look through the columns and remove unnecessary columns with non-important information
+exclude_cols = ['antibiotics_list', 'name_of_antibiotic', 'Antibiotics_used'] + [f'antibiotic_{i}' for i in range(1, 10)]
+
+filtered_antibiotic_cols = [col for col in antibiotic_cols if col not in exclude_cols]
+
+for col in filtered_antibiotic_cols:
+    print(f"\n=== {col} ===")
+    print(df[col].value_counts(dropna=False).head(10))
+
+df.loc[df['Drug_antibiotic_last3y'] == '2 months', 'Antibiotics_used'] = 'Yes'
+
+```
+
