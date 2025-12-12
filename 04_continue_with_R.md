@@ -22,18 +22,6 @@ for(col in uti_cols) {
   cat("\n")
 }
 
-Column: location_resolution 
-[1] "city"      "country"   "region"    "site"      "village"   "continent"
-
-Column: raw_metadata_UTIs 
-[1] NA  0  3  1  4
-Column: raw_metadata_diagnosed_utis 
-[1] NA  1
-Column: raw_metadata_ecoli_utis 
-[1] NA  1
-Column: raw_metadata_history_of_recurrent_uti 
-[1] ""               "Recurrent UTIs"
-
 # Create new column indicating if patient ever had a UTI
 df$UTI_history <- ifelse(
   (!is.na(df$raw_metadata_UTIs) & df$raw_metadata_UTIs > 0) |
@@ -69,7 +57,6 @@ age_cols
 
 df <- df %>%
   mutate(
-    # 1. Age in years, prefer numeric columns
     Age_numeric_new = case_when(
       !is.na(age_years) ~ age_years,
       !is.na(age_days)  ~ age_days / 365,  # convert days to years
@@ -109,11 +96,10 @@ df <- df[ , !(names(df) %in% columns_to_remove)]
 # Check the new columns
 head(df[, c("Age_numeric_new", "Age_category_new")])
 
+```
 
 
 ## 4. Antibiotics:
-
-
 
 ### 4.2. Other antibiotic related columns
 
@@ -129,7 +115,9 @@ exclude_cols = ['antibiotics_list', 'name_of_antibiotic', 'Antibiotics_used'] + 
 
 filtered_antibiotic_cols = [col for col in antibiotic_cols if col not in exclude_cols]
 
-print(filtered_antibiotic_cols)
+for col in filtered_antibiotic_cols:
+    print(f"\n=== {col} ===")
+    print(df[col].value_counts(dropna=False).head(10))
 
 #'Drug_antibiotic_last3y', 'days_since_antibiotics', #'range_days_since_antibiotics', #'raw_metadata_Antibiotics_Last3months', #'raw_metadata_Antibiotics_current', #'raw_metadata_Antibiotics_past_3_months', 'raw_metadata_antibiotic_use', #'raw_metadata_antibiotics', 'raw_metadata_antibiotics_at_birth', #'raw_metadata_antibiotics_with_admission_days', 'raw_metadata_total_antibiotic_days']
 
@@ -231,7 +219,6 @@ columns_to_drop = [
 "raw_metadata_Antibiotics_current",
 "raw_metadata_Antibiotics_past_3_months",
 "raw_metadata_antibiotic_use",
-"raw_metadata_antibiotics",
 "raw_metadata_antibiotics_with_admission_days",
 "raw_metadata_total_antibiotic_days"
 
