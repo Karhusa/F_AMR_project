@@ -216,7 +216,6 @@ for col in infection_cols1:
 ### 8.3 Drop Selected Columns
 ```
 columns_to_drop = [
-    "raw_metadata_GI_infection",
     "raw_metadata_OtherInfection",
     "raw_metadata_TrachealInfection",
 ]
