@@ -413,9 +413,7 @@ df = df.drop(columns=["age_range"]) # babys age in days
 
 ```
 
-df.to_csv("kesken2.tsv", sep="\t", index=False)
-
-16. Antibiotics
+## 16. Antibiotics
 
 
 ```
@@ -437,4 +435,10 @@ for col in filtered_antibiotic_cols:
 df.loc[df['Drug_antibiotic_last3y'] == '2 months', 'Antibiotics_used'] = 'Yes'
 
 ```
+## 17. Save file
 
+```
+
+df.to_csv("kesken2.tsv", sep="\t", index=False)
+
+```
