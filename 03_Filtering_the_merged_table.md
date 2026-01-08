@@ -34,6 +34,9 @@ def drop_nan_no_columns(df):
 df, dropped = drop_nan_no_columns(df)
 print("Dropped columns:", dropped)
 
+print(f" Shape: {df.shape}")
+ Shape: (24605, 154)
+
 ```
 
 ## 4. BMI Cleaning and Categorization
@@ -162,6 +165,9 @@ columns_to_drop = [
 
 df = df.drop(columns=columns_to_drop)
 
+print(f" Shape: {df.shape}")
+ Shape: (24605, 114)
+
 ```
 
 ## 6. Acid-Related Columns
@@ -212,12 +218,14 @@ for col in infection_cols1:
 #raw_metadata_TrachealInfection: [nan  0.  1.]
 #raw_metadata_UrineInfection: [nan  0.  1.]
 #raw_metadata_multi_drug_resistant_organism_infection: [nan 'Negative' 'Positive']
+#raw_metadata_schistosoma_infection_intensity: ...
 ```
 ### 8.3 Drop Selected Columns
 ```
 columns_to_drop = [
     "raw_metadata_OtherInfection",
     "raw_metadata_TrachealInfection",
+    "raw_metadata_schistosoma_infection_intensity"
 ]
 
 df = df.drop(columns=columns_to_drop)
@@ -260,9 +268,13 @@ df["name_of_antibiotic"] = df.apply(get_antibiotics_list, axis=1)
 # Sanity check
 df["name_of_antibiotic"].apply(tuple).unique()
 ```
-### 9.4 Add Yes/No Column
+### 9.4 Add Yes/No Column wheter antibiotics are used or not
 ```
 df["Antibiotics_used"] = df["antibiotics_list"].apply(lambda x: "Yes" if len(x) > 0 else "No")
+df["Antibiotics_used"].value_counts(dropna=False)
+Antibiotics_used
+No     24459
+Yes      146
 ```
 ### 9.5 Remove Raw Antibiotic Columns
 ```
@@ -292,7 +304,6 @@ for col in disease_cols:
 ```
 columns_to_drop = [
     "raw_metadata_Celiac_disease",
-    "raw_metadata_Crohns_disease",
     "raw_metadata_Disease_activity_(Y_or_N)",
     "raw_metadata_diagnosed_with_disease",
     "raw_metadata_disease_cause",
@@ -306,11 +317,12 @@ df = df.drop(columns=columns_to_drop)
 
 ```
 columns_to_drop = [
-    "raw_metadata_schistosoma_infection_intensity",
     "raw_metadata_weight_for_age_z_score",
 ]
-
 df = df.drop(columns=columns_to_drop)
+
+print(f" Shape: {df.shape}")
+ Shape: (24605, 63)
 ```
 
 ## 12. IBD Columns
@@ -322,16 +334,27 @@ for col in ibd_cols:
     print(f"{col}: {df[col].unique()}")
 
 #raw_metadata_IBD: [nan 'N' 'Y']
+
+df["IBD"] = (
+    df["raw_metadata_IBD"]
+    .map({"Y": "Yes", "N": "No"})
+    .astype("category")
+)
+
+df = df.drop(columns=["raw_metadata_IBD"])
+
 ```
 
-## 13. Final Table Size and Export
+## 13. Table Size and Export
 
 ```
 print(f" Shape: {df.shape}")
-# Shape: (24605, 64)
+# Shape: (24605, 62)
 
 df.to_csv("kesken1.tsv", sep="\t", index=False)
 ```
+
+
 ## 14. UTI columns
 ```
 # 1. Load the data
@@ -339,7 +362,6 @@ df = pd.read_csv("kesken1.tsv", sep="\t")
 
 # 2. Find UTI columns
 uti_cols = [col for col in df.columns if "uti" in col.lower()]
-print("UTI columns:", uti_cols)
 
 for col in uti_cols:
     print(f"Column: {col}")
@@ -357,13 +379,13 @@ df["UTI_history"] = np.where(
 )
 
 # Remove original UTI columns
-columns_to_remove = [
+columns_to_drop = [
     "raw_metadata_UTIs",
     "raw_metadata_diagnosed_utis",
     "raw_metadata_ecoli_utis",
     "raw_metadata_history_of_recurrent_uti"
 ]
-df = df.drop(columns=[col for col in columns_to_remove if col in df.columns])
+df = df.drop(columns=columns_to_drop)
 
 # Check new column
 print(df["UTI_history"].value_counts(dropna=False))
@@ -371,6 +393,16 @@ print(df["UTI_history"].value_counts(dropna=False))
 # No     24449
 # Yes      156
 
+# We have one urine tract infection column remaining (8.2 Inspect Remaining Infection Columns)
+
+df.loc[df["raw_metadata_UrineInfection"] == 1, "UTI_history"] = "Yes"
+
+df = df.drop(columns=["raw_metadata_UrineInfection"])
+
+print(df["UTI_history"].value_counts(dropna=False))
+UTI_history
+No     24380
+Yes      225
 ```
 # 15. Age columns
 
@@ -408,7 +440,8 @@ def combine_age(row):
 df["age_years"] = df.apply(combine_age, axis=1)
 
 
-df = df.drop(columns=["age_range"]) # babys age in days
+df = df.drop(columns=["age_range"]) 
+
 
 ```
 
@@ -431,9 +464,49 @@ for col in filtered_antibiotic_cols:
     print(f"\n=== {col} ===")
     print(df[col].value_counts(dropna=False).head(10))
 
+# Drug_antibiotic_last3y
+# days_since_antibiotics
+# range_days_since_antibiotics
+# raw_metadata_Antibiotics_Last3months
+# raw_metadata_Antibiotics_current
+# raw_metadata_Antibiotics_past_3_months
+# raw_metadata_antibiotic_use
+# raw_metadata_antibiotics_at_birth
+# raw_metadata_antibiotics_with_admission_days
+# raw_metadata_total_antibiotic_days
+
+
+
 df.loc[df['Drug_antibiotic_last3y'] == '2 months', 'Antibiotics_used'] = 'Yes'
 
+df.loc[df["days_since_antibiotics"].notna(),"Antibiotics_used"] = "Yes"
+
+df.loc[df["range_days_since_antibiotics"].notna(),"Antibiotics_used"] = "Yes"
+
+df.loc[df["raw_metadata_Antibiotics_Last3months"].str.contains("Yes", case=False, na=False),"Antibiotics_used"] = "Yes"
+
+df.loc[df["raw_metadata_Antibiotics_current"] == "Y", "Antibiotics_used"] = "Yes"
+
+df.loc[df["raw_metadata_Antibiotics_past_3_months"] == "Y", "Antibiotics_used"] = "Yes"
+
+df.loc[df["raw_metadata_antibiotics_at_birth"].str.upper() == "YES","Antibiotics_used"] = "Yes"
+
+df.loc[df["raw_metadata_antibiotics_with_admission_days"].gt(0), "Antibiotics_used"] = "Yes" # most likely antibiotics were taken during admission days
+
+df.loc[df["raw_metadata_total_antibiotic_days"].gt(0),"Antibiotics_used"] = "Yes"
+
+df["Antibiotics_used"].value_counts(dropna=False)
+
+Antibiotics_used
+No     23611
+Yes      994
+
+df = df.drop(columns=filtered_antibiotic_cols)
 ```
+
+
+
+
 ## 17. Save file
 
 ```
