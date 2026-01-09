@@ -220,12 +220,12 @@ df["Cancers_and_adenomas"].value_counts(dropna=False)
 ```
 6.2. Abbrevations
 ```
-Diseases_of_interest = ["iCD", "cCD", "UC", "PD"]
+Diseases_of_interest = ["iCD", "cCD", "IC", "UC", "PD"]
 
 subset = df[df["subject_disease_status_full"].isin(Diseases_of_interest)]
 
 bioprojects = subset["bioproject"].unique()
-print("Unique bioproject numbers for iCD, cCD, UC, PD:")
+print("Unique bioproject numbers for iCD, cCD, IC, UC, PD:")
 print(bioprojects)
 
 print(bioprojects)
@@ -559,13 +559,19 @@ adult            3
 schoolage        2
 Name: count, dtype: int64
 
-df["age_category"] = df["raw_metadata_age_group"].map({
+df["age_category"] = df["raw_metadata_age_group"].replace({
     "adult": "Adult",
     "schoolage": "Child"
 })
 
 
 df = df.drop(columns=["raw_metadata_age_group"])
+```
 
+
+```
+DataFrame shape: (24605, 39)
+```
 
 df.to_csv("kesken4.tsv", sep="\t", index=False)
+
