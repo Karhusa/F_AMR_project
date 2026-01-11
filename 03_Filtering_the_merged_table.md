@@ -272,9 +272,9 @@ df["name_of_antibiotic"].apply(tuple).unique()
 ```
 df["Antibiotics_used"] = df["antibiotics_list"].apply(lambda x: "Yes" if len(x) > 0 else "No")
 df["Antibiotics_used"].value_counts(dropna=False)
-Antibiotics_used
-No     24459
-Yes      146
+# Antibiotics_used
+# No     24459
+# Yes      146
 ```
 ### 9.5 Remove Raw Antibiotic Columns
 ```
@@ -322,7 +322,7 @@ columns_to_drop = [
 df = df.drop(columns=columns_to_drop)
 
 print(f" Shape: {df.shape}")
- Shape: (24605, 63)
+# Shape: (24605, 63)
 ```
 
 ## 12. IBD Columns
@@ -389,7 +389,7 @@ df = df.drop(columns=columns_to_drop)
 
 # Check new column
 print(df["UTI_history"].value_counts(dropna=False))
-
+# UTI_history
 # No     24449
 # Yes      156
 
@@ -400,9 +400,9 @@ df.loc[df["raw_metadata_UrineInfection"] == 1, "UTI_history"] = "Yes"
 df = df.drop(columns=["raw_metadata_UrineInfection"])
 
 print(df["UTI_history"].value_counts(dropna=False))
-UTI_history
-No     24380
-Yes      225
+#UTI_history
+# No     24380
+# Yes      225
 ```
 # 15. Age columns
 
@@ -441,13 +441,8 @@ df["age_years"] = df.apply(combine_age, axis=1)
 
 
 df = df.drop(columns=["age_range"]) 
-
-
 ```
-
 ## 16. Antibiotics
-
-
 ```
 antibiotic_cols = df.columns[df.columns.str.contains("antibiotic", case=False)]
 
@@ -496,21 +491,14 @@ df.loc[df["raw_metadata_antibiotics_with_admission_days"].gt(0), "Antibiotics_us
 df.loc[df["raw_metadata_total_antibiotic_days"].gt(0),"Antibiotics_used"] = "Yes"
 
 df["Antibiotics_used"].value_counts(dropna=False)
-
-Antibiotics_used
-No     23611
-Yes      994
+# Antibiotics_used
+# No     23611
+# Yes      994
 
 df = df.drop(columns=filtered_antibiotic_cols)
 ```
-
-
-
-
 ## 17. Save file
 
 ```
-
 df.to_csv("kesken2.tsv", sep="\t", index=False)
-
 ```
