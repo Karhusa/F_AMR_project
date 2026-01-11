@@ -15,7 +15,7 @@ df = pd.read_csv("kesken2.tsv", sep="\t")
 ## 2. Size and names of the columns
 ```
 print(df.shape)
-(24605, 37)
+(24605, 47)
 
 print(df.columns.tolist())
 
@@ -159,6 +159,8 @@ df.to_csv("kesken3.tsv", sep="\t", index=False)
 
 ### 6.1. inspect the values
 ```
+df = pd.read_csv("kesken3.tsv", sep="\t")
+
 df["subject_disease_status_full"].value_counts(dropna=False)
 
 #subject_disease_status_full
@@ -195,7 +197,7 @@ df["subject_disease_status_full"].value_counts(dropna=False)
 
 
 ```
-6.2. Cancer related values
+## 6.2. Cancer related values
 ```
 Cancer_keywords = [
     "melanoma",
@@ -216,9 +218,15 @@ for keyword in cancer_keywords:
     df.loc[mask, "Cancers_and_adenomas"] = df.loc[mask, "Cancers_and_adenomas"].apply(add_label, new=keyword)
 
 df["Cancers_and_adenomas"].value_counts(dropna=False)
+#Cancers_and_adenomas
+#<NA>              24362
+#melanoma            197
+#adenocarcinoma       26
+#adenoma              20
+#Name: count, dtype: int64
 
 ```
-6.2. Abbrevations
+## 6.2. Abbrevations
 ```
 Diseases_of_interest = ["iCD", "cCD", "IC", "UC", "PD"]
 
@@ -389,7 +397,6 @@ uti_mask = df["subject_disease_status"].astype(str).str.contains("urinary tract 
 df.loc[uti_mask, "UTI_history"] = "Yes"
 
 df["UTI_history"].value_counts(dropna=False)
-
 #UTI_history
 #No     24355
 #Yes      250
@@ -417,12 +424,11 @@ for col in ["HIV_history", "COVID19_history", "CPE_infection_history"]:
 ### 7.5. Remove original column and save
 ```
 df = df.drop(columns=["subject_disease_status"])
-df.to_csv("kesken4.tsv", sep="\t", index=False)
+df.to_csv("kesken3.tsv", sep="\t", index=False)
 ```
 ## 8 raw_metadata_subject_disease_status_full column
 ```
 df["raw_metadata_subject_disease_status_full"].value_counts(dropna=False)
-
 #raw_metadata_subject_disease_status_full
 #NaN                              24314
 #COHORT                             158
@@ -434,13 +440,11 @@ df = df.drop(columns=["raw_metadata_subject_disease_status_full"])
 ## 9. raw_metadata_host_disease column
 ```
 df["raw_metadata_host_disease"].value_counts(dropna=False)
-
-df["raw_metadata_host_disease"].value_counts(dropna=False)
-raw_metadata_host_disease
-NaN                             24585
-Acute Lymphoblastic Leukemia       14
-Acute Myeloid Leukemia              6
-Name: count, dtype: int64
+#raw_metadata_host_disease
+#NaN                             24585
+#Acute Lymphoblastic Leukemia       14
+#Acute Myeloid Leukemia              6
+#Name: count, dtype: int64
 
 mask = df["raw_metadata_host_disease"].notna()
 
@@ -451,7 +455,7 @@ df.loc[mask, "Cancers_and_adenomas"] = (
 
 df = df.drop(columns=["raw_metadata_host_disease"])
 
-df.to_csv("kesken4.tsv", sep="\t", index=False)
+df.to_csv("kesken3.tsv", sep="\t", index=False)
 ```
 ## 10. raw_metadata_diseases column
 ```
@@ -548,6 +552,7 @@ df = df.drop(columns=["raw_metadata_Drug_antivirus"])
 df = df.drop(columns=["raw_metadata_MaternalAntimicrobials"])
 df = df.drop(columns=["raw_metadata_TotalAntimicrobialsDays"])
 
+df.to_csv("kesken3.tsv", sep="\t", index=False)
 ```
 ## 13. raw_metadata_age_group column
 ```
@@ -559,19 +564,24 @@ adult            3
 schoolage        2
 Name: count, dtype: int64
 
-df["age_category"] = df["raw_metadata_age_group"].replace({
+mask = df["raw_metadata_age_group"].notna()
+
+df.loc[mask, "age_category"] = df.loc[mask, "raw_metadata_age_group"].replace({
     "adult": "Adult",
     "schoolage": "Child"
 })
 
+df.to_csv("kesken4.tsv", sep="\t", index=False)
+
 
 df = df.drop(columns=["raw_metadata_age_group"])
 ```
-
+## Shape and Save
 
 ```
+print(df.shape)
 DataFrame shape: (24605, 39)
-```
 
 df.to_csv("kesken4.tsv", sep="\t", index=False)
+```
 
