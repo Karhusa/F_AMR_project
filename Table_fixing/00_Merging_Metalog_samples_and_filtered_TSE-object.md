@@ -79,7 +79,9 @@ srr_ids <- read_csv("Gradu_AMR/srr_ids.csv")
 srs_ids <- read_csv("Gradu_AMR/srs_ids.csv")
 srx_ids <- read_csv("Gradu_AMR/srx_ids.csv")
 ```
-Check for matches between Metalog sample IDs and the TSE object:
+### 3.1 Match Metalog IDs to TSE Accessions
+
+Check whether any Metalog sample IDs match the acc column of the TSE object.
 ```{r}
 matches_err <- err_ids$ena_ers_sample_id[err_ids$ena_ers_sample_id %in% df_col$acc]
 matches_ers <- ers_ids$ena_ers_sample_id[ers_ids$ena_ers_sample_id %in% df_col$acc]
@@ -90,9 +92,8 @@ matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_col$a
 matches_srs<- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$acc]
 ```
-## 4. Try Matching by Numeric Suffix (Ignoring Prefix)
-
-Since prefixes like ERR, SRR, and DRR may vary, match based on the numeric part of the sample ID:
+## 4. Attempt Matching by Numeric Suffix (Ignoring Prefix)
+Since prefixes such as ERR, SRR, or DRR may differ, matching was attempted using only the numeric part of the accession.
 
 ```{r}
 df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
@@ -110,15 +111,19 @@ matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
 
 matches
 ```
-No matches were found. This was also verified manually.
+Result:
+No matches were found. This was also confirmed by manual inspection.
 
-## 5. Compare Sample IDs to a New SRA File
+## 5. Compare Metalog Samples to a New SRA Metadata File
 
-I got a new SRA file with biosample IDs. Let's compare those:
+A new SRA metadata file containing biosample IDs was used for comparison.
 
 ```{r}
 SRA_metadata_with_biosample <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
 View(SRA_metadata_with_biosample)
+```
+### 5.1 Match Biosample IDs
+```{r}
 
 matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
 length(matches_samd)
@@ -136,9 +141,9 @@ Match counts:
 - SAMN: 1976
 - Total matches: 3620
 
-## 6. Annotate SRA Table with Metalog Matches
+## 6. Annotate SRA Metadata with Metalog Matches
 
-Create a new column Metalog in the SRA table:
+Create a binary column (Metalog) indicating whether a biosample appears in Metalog.
 
 ```{r}
 all_matches <- c(matches_samd, matches_samea, matches_samn)
@@ -148,15 +153,17 @@ SRA_metadata_with_biosample$Metalog <- ifelse(SRA_metadata_with_biosample$biosam
 sum(SRA_metadata_with_biosample$Metalog == 1, na.rm = TRUE)
 # Result: 5391
 ```
-Note: The number of matches (5391) exceeds the length of all_matches (3620). Let's investigate.
+Why is 5391 > 3620?
 
-7. Investigate Duplicate Biosample IDs
+The higher number indicates duplicate biosample IDs in the SRA table.
+
+### 6.1 Investigate Duplicate Biosample IDs
 
 ```{r}
 library(dplyr)
 
 # SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]
-#returns a vector of biosample IDs that had a match in all_matches list (number 1).
+# returns a vector of biosample IDs that had a match in all_matches list (number 1).
 # unique removes all the duplicate values and length gives the length of the list.
 
 length(unique(SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]))
@@ -166,9 +173,9 @@ length(unique(all_matches))
 # 3620 --> all are unique values
 
 ```
-There were duplicates in the SRA biosample column, lets see why.
+Duplicates confirmed.
 
-```
+```{r}
 #keep biosample numbers with Metalog value 1, count the biomaple values and keep only duplicates (or count > 1)
 matched_rows <- SRA_metadata_with_biosample[SRA_metadata_with_biosample$Metalog == 1, ]
 biosample_counts <- table(matched_rows$biosample)
@@ -176,7 +183,9 @@ duplicates <- names(biosample_counts[biosample_counts > 1])
 
 length(duplicates)
 # 381
-
+```
+Example duplicate:
+```{r}
 head(duplicates)
 # "SAMEA2466887" "SAMEA2466888" "SAMEA2466890" "SAMEA2466891" "SAMEA2466892" "SAMEA2466898"
 ```
@@ -193,9 +202,10 @@ SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
 # 2  PRJEB6070        145   1452                           1
 
 ```
-Result: Same biosample ID appears with different accession numbers — likely samples from the same patient.
+Interpretation:
+The same biosample ID appears with multiple sequencing accessions, likely representing multiple runs from the same biological sample (e.g. same patient).
 
-8. Filter Matched Samples
+## 7. Filter Final Matched Dataset
 
 ```
 SRA_metadata_with_biosample_matched_1 <- SRA_metadata_with_biosample %>% filter(Metalog == 1)
