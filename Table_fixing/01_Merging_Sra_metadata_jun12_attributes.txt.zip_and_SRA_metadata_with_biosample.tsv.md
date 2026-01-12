@@ -1,6 +1,6 @@
 # 1. Lets have a look of what the file looks like
 
-1.1. We need to collect samples with keywords female, male, disease, age, bmi, and antibiotics.
+## 1.1. We need to collect samples with keywords female, male, disease, age, bmi, and antibiotics.
 
 ```bash
 unzip -p Sra_metadata_jun12_attributes.txt.zip Sra_metadata_jun12_attributes.txt | head -n 5
@@ -13,7 +13,7 @@ unzip -p Sra_metadata_jun12_attributes.txt.zip Sra_metadata_jun12_attributes.txt
 head -n 5 metadata_matches2.txt
 
 ```
-Create a python script to unpack the "jattr" column (unpack_jattr.py).
+## 1.2 Create a python script to unpack the "jattr" column (unpack_jattr.py).
 
 ```
 import pandas as pd
@@ -34,9 +34,8 @@ df_flat = pd.concat([df.drop(columns=['jattr']), jattr_expanded], axis=1)
 df_flat.to_csv("SRA_metadata_jun12.csv", index=False)
 
 ```
-Run in bash
 
-```
+```bash
 python3 -m pip install pandas
 #version 2.3.3
 
@@ -45,8 +44,7 @@ python3 unpack_jattr.py
 
 ### Lets take a look of the file
 
-```
-bash
+```bash
 
 wc -l SRA_metadata_jun12.csv
 # 17718 rows
@@ -55,12 +53,10 @@ awk -F',' '{print NF; exit}' SRA_metadata_jun12.csv
 # 2132 columns
 
 ```
-Filter Gender
+## 3. Filter Gender
 
-```
-python
+```python
 
-```
 import pandas as pd
 import ast
 
@@ -123,6 +119,8 @@ for col in ["Gender", "Sample type"]:
     if col in cols:
         cols.insert(1, cols.pop(cols.index(col)))
 df = df[cols]
+
+```
 
 
 df.to_csv("metadata_gender_sample.csv", index=False)
