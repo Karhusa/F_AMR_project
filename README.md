@@ -8,15 +8,15 @@ Saana Karhula 29.10.2025 -
 
 Matching Metalog Human Samples to a TSE Object and SRA Metadata
 
-Overview
+Overview:
 This workflow aims to determine whether human samples listed in Metalog are represented in an existing TSE object, and to annotate SRA metadata accordingly.
 Because Metalog sample lists are very large, Unix tools are used for preprocessing, followed by matching in R.
 
 01_
+
 Processing SRA Metadata: Extracting Gender and Sample Type
 
-Overview
-
+Overview:
 This workflow extracts human-related metadata from a large SRA attributes file, focusing on the following keywords:
 
 * Sex / Gender (female, male)
@@ -26,6 +26,14 @@ This workflow extracts human-related metadata from a large SRA attributes file, 
 * Antibiotics
 * Sample type (feces / gut)
 * The raw metadata contains a JSON-like column (jattr) that must be unpacked before filtering.
+
+02_
+
+Linking SRA Metadata with SPIRE Human Metadata via BioSample IDs
+
+Overview:
+This workflow links SRA run-level metadata to SPIRE human metadata using shared BioSample IDs (SAMN, SAMD, SAMEA).
+The goal is to produce a clean, merged metadata table enriched with demographic, clinical, and antibiotic-related information.
 
 
 
