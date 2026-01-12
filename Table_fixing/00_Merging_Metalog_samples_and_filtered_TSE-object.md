@@ -212,3 +212,5 @@ SRA_metadata_with_biosample_matched_1 <- SRA_metadata_with_biosample %>% filter(
 
 View(SRA_metadata_with_biosample_matched_1)
 ```
+
+The amoutn of samples is low so we need try another dataset
