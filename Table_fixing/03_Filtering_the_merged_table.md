@@ -79,7 +79,7 @@ mask = df["bmi_range"].notna()
 df.loc[mask, "BMI_range_new"] = (df.loc[mask, "bmi_range"].map(bmi_range_map))
 ```
 ### 4.4 Add Additional Categories
-```
+```python
 if not pd.api.types.is_categorical_dtype(df["BMI_range_new"]):
     df["BMI_range_new"] = df["BMI_range_new"].astype("category")
 
@@ -160,7 +160,7 @@ print(f" Shape: {df.shape}")
 
 ## 6. Remove Acid-Related Columns
 
-```
+```python
 acid_cols = df.columns[df.columns.str.contains("acid", case=False)]
 print(acid_cols)
 
@@ -171,8 +171,7 @@ df = df.drop(columns=acid_cols)
 ```
 
 ## 7. 7. Remove Cancer-Related Columns
-
-```
+```python
 cancer_cols = df.columns[df.columns.str.contains("cancer", case=False)]
 for col in cancer_cols:
     print(f"{col}: {df[col].unique()}")
@@ -185,7 +184,7 @@ df = df.drop(columns=cancer_cols)
 ## 8. 8. Infection-Related Columns
 
 8.1 Drop High-Level Infection Control Columns
-```
+```python
 infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
 
 for col in infection_cols:
@@ -196,7 +195,7 @@ for col in infection_cols:
 df = df.drop(columns=infection_cols)
 ```
 ### 8.2 Inspect Infection Columns
-```
+```python
 infection_cols1 = df.columns[df.columns.str.contains("infection", case=False)]
 for col in infection_cols1:
     print(f"{col}: {df[col].unique()}")
@@ -243,7 +242,7 @@ def get_antibiotics_list(row):
 df["antibiotics_list"] = df.apply(get_antibiotics_list, axis=1)
 ```
 ### 9.3 Expand Lists Into Columns
-```
+```python
 antibiotics_expanded = pd.DataFrame(
     df["antibiotics_list"].to_list(),
     index=df.index
@@ -256,7 +255,7 @@ df["name_of_antibiotic"] = df.apply(get_antibiotics_list, axis=1)
 df["name_of_antibiotic"].apply(tuple).unique()
 ```
 ### 9.4 Add Yes/No Column wheter antibiotics are used or not
-```
+```python
 df["Antibiotics_used"] = df["antibiotics_list"].apply(lambda x: "Yes" if len(x) > 0 else "No")
 df["Antibiotics_used"].value_counts(dropna=False)
 # Antibiotics_used
@@ -264,12 +263,12 @@ df["Antibiotics_used"].value_counts(dropna=False)
 # Yes      146
 ```
 ### 9.5 Remove Raw Antibiotic Columns
-```
+```python
 df = df.drop(columns=all_antibiotic_cols)
 ```
 ## 10. Disease Columns
 ### 10.1 Inspect Disease Columns
-```
+```python
 disease_cols = df.columns[df.columns.str.contains("disease", case=False)]
 for col in disease_cols:
     print(f"{col}: {df[col].unique()}")
@@ -302,14 +301,11 @@ df = df.drop(columns=[
 
 ```python
 columns_to_drop = ["raw_metadata_weight_for_age_z_score",]
-
-print(f" Shape: {df.shape}")
-# Shape: (24605, 63)
 ```
 
 ## 12. IBD Columns
 
-```
+```python
 ibd_cols = df.columns[df.columns.str.contains("ibd", case=False)]
 
 for col in ibd_cols:
@@ -324,25 +320,19 @@ df["IBD"] = (
 )
 
 df = df.drop(columns=["raw_metadata_IBD"])
-
 ```
 
 ## 13. Table Size and Export
 
-```
+```python
 print(f" Shape: {df.shape}")
 # Shape: (24605, 62)
 
 df.to_csv("kesken1.tsv", sep="\t", index=False)
 ```
-
-
 ## 14. UTI columns
-```
-# 1. Load the data
-df = pd.read_csv("kesken1.tsv", sep="\t")
-
-# 2. Find UTI columns
+Create a single binary UTI history variable.
+```python
 uti_cols = [col for col in df.columns if "uti" in col.lower()]
 
 for col in uti_cols:
@@ -350,7 +340,6 @@ for col in uti_cols:
     print(df[col].unique())
     print()
 
-# Create new column indicating if patient ever had a UTI
 df["UTI_history"] = np.where(
     ((df.get("raw_metadata_UTIs", np.nan) > 0) & df.get("raw_metadata_UTIs").notna()) |
     ((df.get("raw_metadata_diagnosed_utis", np.nan) == 1) & df.get("raw_metadata_diagnosed_utis").notna()) |
@@ -360,35 +349,30 @@ df["UTI_history"] = np.where(
     "No"
 )
 
-# Remove original UTI columns
-columns_to_drop = [
+df = df.drop(columns=[
     "raw_metadata_UTIs",
     "raw_metadata_diagnosed_utis",
     "raw_metadata_ecoli_utis",
-    "raw_metadata_history_of_recurrent_uti"
-]
-df = df.drop(columns=columns_to_drop)
-
-# Check new column
-print(df["UTI_history"].value_counts(dropna=False))
-# UTI_history
-# No     24449
-# Yes      156
+    "raw_metadata_history_of_recurrent_uti",
+    "raw_metadata_UrineInfection",
+])
+```
+Observations:
+* 156 patients had UTI
+* 24449 didn't have UTI
 
 # We have one urine tract infection column remaining (8.2 Inspect Remaining Infection Columns)
-
+```python
 df.loc[df["raw_metadata_UrineInfection"] == 1, "UTI_history"] = "Yes"
 
 df = df.drop(columns=["raw_metadata_UrineInfection"])
-
-print(df["UTI_history"].value_counts(dropna=False))
-#UTI_history
-# No     24380
-# Yes      225
 ```
-# 15. Age columns
-
-```
+Observations:
+* 225 patients had UTI
+* 24380 didn't have UTI
+  
+## 15. Age Harmonization
+```python
 age_cols = [col for col in df.columns if "age" in col.lower()]
 print("Age columns:", age_cols)
 
@@ -407,8 +391,6 @@ def range_to_midpoint(x):
 def combine_age(row):
     numeric = row["age_years"]
     rng = row["age_range"]
-    
-    # If age_years exists → keep numeric
     if pd.notna(numeric):
         return numeric
     
