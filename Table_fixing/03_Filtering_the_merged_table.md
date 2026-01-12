@@ -1,7 +1,7 @@
 
 ## 1. Load Data
 
-```
+```python
 import pandas as pd
 import numpy as np
 import re
@@ -9,16 +9,17 @@ import re
 df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
 ```
 
-## 2. Remove Columns With No Values
-
+## 2. Remove Completely Empty Columns
+Drop columns containing only missing values.
 ```
 df = df.dropna(axis=1, how='all')
 print(f" Shape: {df.shape}")
 # Shape: (24605, 195)
 ```
-## 3. Drop Columns Containing Only NaN or "No"
+## 3.  Drop Columns Containing Only NaN or "No"
 
-```
+Some metadata fields only contain "No" values and provide no information.
+```python
 def drop_nan_no_columns(df):
     cols_to_drop = []
     for col in df.columns:
@@ -30,33 +31,28 @@ def drop_nan_no_columns(df):
     df = df.drop(columns=cols_to_drop)
     return df, cols_to_drop
 
-
 df, dropped = drop_nan_no_columns(df)
 print("Dropped columns:", dropped)
 
 print(f" Shape: {df.shape}")
  Shape: (24605, 154)
-
 ```
 
 ## 4. BMI Cleaning and Categorization
 
-### 4.1 Inspect BMI Columns
+### 4.1 Identify BMI-Related Columns
 
-```
+```python
 bmi_cols = df.columns[df.columns.str.contains("bmi", case=False)]
-
-for col in bmi_cols:
-    print(f"{col}: {df[col].unique()}")
-
-#BMI_range: [nan '>30' '<30']
-#bmi: [        nan 23.1        20.4        ... 21.33683793 24.27411265    26.21415974]
-#bmi_range: [nan '20-25' '16-20' '18.5-28' 'over 25' '25-30']
-#raw_metadata_bmi_for_age_z_score: [  nan  0.94  .... ]
 ```
-### 4.2 Convert BMI to Numeric and Create Categories
+Observed formats:
 
-```
+* Numeric BMI (bmi)
+* Text ranges (bmi_range, BMI_range)
+* Z-scores (raw_metadata_bmi_for_age_z_score)
+
+### 4.2 Convert Numeric BMI to Categories
+```python
 df["bmi"] = pd.to_numeric(df["bmi"], errors="coerce")
 
 bins = [0, 18.5, 25, 30, float("inf")]
@@ -67,16 +63,10 @@ labels = [
     "Obese (>30)"
 ]
 
-df["BMI_range_new"] = pd.cut(
-    df["bmi"],
-    bins=bins,
-    labels=labels
-)
+df["BMI_range_new"] = pd.cut(df["bmi"], bins=bins, labels=labels)
 ```
-### 4.3 Override Using Text-Based bmi_range Values
-```
-# Override using `bmi_range` text values
-
+### 4.3 Override Using Text-Based bmi_range 
+```python
 bmi_range_map = {
     "16-20": "Underweight (<18.5)",
     "18.5-28": "Normal (18.5-25)",
@@ -86,9 +76,7 @@ bmi_range_map = {
 }
 
 mask = df["bmi_range"].notna()
-df.loc[mask, "BMI_range_new"] = (
-    df.loc[mask, "bmi_range"].map(bmi_range_map)
-)
+df.loc[mask, "BMI_range_new"] = (df.loc[mask, "bmi_range"].map(bmi_range_map))
 ```
 ### 4.4 Add Additional Categories
 ```
@@ -96,32 +84,33 @@ if not pd.api.types.is_categorical_dtype(df["BMI_range_new"]):
     df["BMI_range_new"] = df["BMI_range_new"].astype("category")
 
 new_categories = ["Obese (>30)", "Normal/Overweight (<30)"]
+
 existing = df["BMI_range_new"].cat.categories
 
 to_add = [cat for cat in new_categories if cat not in existing]
 
 df["BMI_range_new"] = df["BMI_range_new"].cat.add_categories(to_add)
 ```
-### 4.5 Override Using BMI_range
-```
+### 4.5 Override Using Binary BMI_range
+```python
 BMI_range_map = {">30": "Obese (>30)", "<30": "Normal/Overweight (<30)"}
 
 mask2 = df["BMI_range"].notna()
-df.loc[mask2, "BMI_range_new"] = (
-    df.loc[mask2, "BMI_range"].map(BMI_range_map)
-)
+df.loc[mask2, "BMI_range_new"] = (df.loc[mask2, "BMI_range"].map(BMI_range_map))
 ```
-### 4.6 Review and Cleanup
-```
+### 4.6 Finalise BMI
+```python
 print(df["BMI_range_new"].value_counts(dropna=False))
 print(df[["bmi", "bmi_range", "BMI_range", "BMI_range_new"]].head(10))
 
 df = df.drop(columns=bmi_cols)
 ```
 
-## 5. Drop Additional Unnecessary Metadata Columns
+## 5. Remove Unnecessary Metadata Columns
 
-```
+Columns related to internal processing, non-relevant clinical fields, or redundant measurements were removed.
+
+```python
 columns_to_drop = [
     "raw_metadata_BloodInfection",
     "raw_metadata_age-block",
@@ -167,10 +156,9 @@ df = df.drop(columns=columns_to_drop)
 
 print(f" Shape: {df.shape}")
  Shape: (24605, 114)
-
 ```
 
-## 6. Acid-Related Columns
+## 6. Remove Acid-Related Columns
 
 ```
 acid_cols = df.columns[df.columns.str.contains("acid", case=False)]
@@ -182,7 +170,7 @@ print(acid_cols)
 df = df.drop(columns=acid_cols)
 ```
 
-## 7. Cancer-Related Columns
+## 7. 7. Remove Cancer-Related Columns
 
 ```
 cancer_cols = df.columns[df.columns.str.contains("cancer", case=False)]
@@ -194,9 +182,9 @@ for col in cancer_cols:
 df = df.drop(columns=cancer_cols)
 ```
 
-## 8. Infection-Related Columns
+## 8. 8. Infection-Related Columns
 
-### 8.1 Drop High-Level Infection Columns
+8.1 Drop High-Level Infection Control Columns
 ```
 infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
 
@@ -207,7 +195,7 @@ for col in infection_cols:
 
 df = df.drop(columns=infection_cols)
 ```
-### 8.2 Inspect Remaining Infection Columns
+### 8.2 Inspect Infection Columns
 ```
 infection_cols1 = df.columns[df.columns.str.contains("infection", case=False)]
 for col in infection_cols1:
@@ -220,8 +208,8 @@ for col in infection_cols1:
 #raw_metadata_multi_drug_resistant_organism_infection: [nan 'Negative' 'Positive']
 #raw_metadata_schistosoma_infection_intensity: ...
 ```
-### 8.3 Drop Selected Columns
-```
+### 8.2 Drop Selected Infection Variables
+```python
 columns_to_drop = [
     "raw_metadata_OtherInfection",
     "raw_metadata_TrachealInfection",
@@ -232,17 +220,16 @@ df = df.drop(columns=columns_to_drop)
 ```
 
 ## 9. Antibiotic Usage Processing
-
-### 9.1 Identify Antibiotic Columns
-```
+### 9.1 Identify Antibiotic Indicator Columns
+```python
 antibiotic_cols_w = [c for c in df.columns if c.startswith("raw_metadata_w_")]
 antibiotic_cols_c = [c for c in df.columns if c.startswith("raw_metadata_c_")]
 antibiotic_cols_m = [c for c in df.columns if c.startswith("raw_metadata_m_")]
 
 all_antibiotic_cols = antibiotic_cols_w + antibiotic_cols_c + antibiotic_cols_m
 ```
-### 9.2 Create Antibiotic List per Sample
-```
+### 9.2 Extract Antibiotics Used Per Sample
+```python
 def get_antibiotics_list(row):
     used = []
     for col in all_antibiotic_cols:
@@ -300,26 +287,21 @@ for col in disease_cols:
 #subject_disease_status: ['CTR' 'atopy' 'COHORT' "Crohn's disease" 'type 2 diabetes' ... many more ]
 #subject_disease_status_full: [nan 'preeclampsia' 'mild preeclampsia' 'oligohydramnios' ... many more]
 ```
-### 10.2 Drop Selected Disease Columns
-```
-columns_to_drop = [
+### 10.2 Remove Redundant Disease Fields
+```python
+df = df.drop(columns=[
     "raw_metadata_Celiac_disease",
     "raw_metadata_Disease_activity_(Y_or_N)",
     "raw_metadata_diagnosed_with_disease",
     "raw_metadata_disease_cause",
     "raw_metadata_disease_group"
-]
-
-df = df.drop(columns=columns_to_drop)
+])
 ```
 
-## 11. Remove Additional Columns
+## 11. Final Column Cleanup
 
-```
-columns_to_drop = [
-    "raw_metadata_weight_for_age_z_score",
-]
-df = df.drop(columns=columns_to_drop)
+```python
+columns_to_drop = ["raw_metadata_weight_for_age_z_score",]
 
 print(f" Shape: {df.shape}")
 # Shape: (24605, 63)
