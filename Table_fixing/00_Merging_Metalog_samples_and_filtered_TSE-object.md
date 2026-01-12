@@ -1,7 +1,7 @@
-### 1. Download and check TSE-object
 
-Download already existing TSE-object to your local computer and open it with R and check what kind of sample or ACC identifies data includes
+## 1. Load and Inspect the TSE Object
 
+Download the existing TSE object, load it into R, and inspect the sample identifiers.
 ```{r}
 library(tibble)
 
@@ -9,31 +9,38 @@ TSE_filtered <- readRDS("~/Downloads/TSE_filtered.rds")
 df_col <- as_tibble(colData(TSE_filtered))
 View(df_col)
 ```
-We are interested in the column named acc, which contains the accession numbers of the samples.
+* acc — contains accession numbers identifying samples
 
-### 2. Download Sample List from Metalog and Inspect Accession Numbers
+## 2. Download and Inspect Metalog Human Sample List
 
-Download the human sample list from Metalog. The file is too large for R, so inspect it using Unix tools.
+Download the human sample list from Metalog.
 
-The file contains three columns:
-- Study code
-- ena_ers_sample_id
-- Sample alias
+The file is too large to load into R directly, so it is inspected using Unix tools.
 
-We are interested in column 2 (ena_ers_sample_id). First, extract unique prefixes to understand the sample ID formats:
 
-```
-bash
+File structure
 
-# Save unique values from colum 1 to a textfile
+The CSV file contains three columns:
+* Study code
+* ena_ers_sample_id
+* Sample alias
+
+We focus on column 2 (ena_ers_sample_id).
+
+
+### 2.1 Identify Sample ID Prefixes
+
+Extract unique study codes and sample ID prefixes to understand the ID formats.
+
+```bash
 cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
 
 # Save unique prefixes from column 2 to a textfile
 tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.tx
 ```
-Example prefixes
+Observed prefixes include:
 
-```{r}
+```
 Example prefixes:
 #ERR
 #ERS
@@ -44,7 +51,9 @@ Example prefixes:
 #SRS
 #SRX
 ```
-Create separate tables for each prefix to simplify downstream processing:
+### 2.2 Split Metalog File by Prefix
+
+To simplify downstream processing, create separate CSV files for each prefix.
 ```
 # make different tables with different sample number prefixes (smaller and easier to run)
 awk -F',' 'NR==1 || $2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
