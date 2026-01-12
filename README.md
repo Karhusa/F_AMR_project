@@ -4,6 +4,28 @@ Saana Karhula 29.10.2025 -
 
 ## 1. Table fixing
 
+00_
+
+Matching Metalog Human Samples to a TSE Object and SRA Metadata
+
+Overview
+This workflow aims to determine whether human samples listed in Metalog are represented in an existing TSE object, and to annotate SRA metadata accordingly.
+Because Metalog sample lists are very large, Unix tools are used for preprocessing, followed by matching in R.
+
+01_
+Processing SRA Metadata: Extracting Gender and Sample Type
+
+Overview
+
+This workflow extracts human-related metadata from a large SRA attributes file, focusing on the following keywords:
+
+* Sex / Gender (female, male)
+* Disease
+* Age
+* BMI
+* Antibiotics
+* Sample type (feces / gut)
+* The raw metadata contains a JSON-like column (jattr) that must be unpacked before filtering.
 
 
 
