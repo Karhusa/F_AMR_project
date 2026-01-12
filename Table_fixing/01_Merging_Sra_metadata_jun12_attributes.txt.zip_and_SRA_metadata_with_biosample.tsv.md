@@ -1,10 +1,8 @@
-Lets have a look of what the file looks like
+# 1. Lets have a look of what the file looks like
 
-Then we need to collect samples with keywords female, male, disease, age, bmi, and antibiotics.
+1.1. We need to collect samples with keywords female, male, disease, age, bmi, and antibiotics.
 
-```
-bash
-
+```bash
 unzip -p Sra_metadata_jun12_attributes.txt.zip Sra_metadata_jun12_attributes.txt | head -n 5
 
 {
