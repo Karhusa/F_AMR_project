@@ -1,73 +1,55 @@
+# Workflow: Matching TSE Samples to Metalog / SRA Data
+---
 
-## 1. Load and Inspect the TSE Object
+## 1. Load and Inspect TSE Object
 
-Download the existing TSE object, load it into R, and inspect the sample identifiers.
-```{r}
+```r
 library(tibble)
 
 TSE_filtered <- readRDS("~/Downloads/TSE_filtered.rds")
+
 df_col <- as_tibble(colData(TSE_filtered))
 View(df_col)
 ```
-* acc — contains accession numbers identifying samples
+Goal: Check which accession numbers are present in the TSE object.
 
-## 2. Download and Inspect Metalog Human Sample List
+---
 
-Download the human sample list from Metalog.
+## 2. Download Sample List from Metalog and Inspect Accession Numbers
 
-The file is too large to load into R directly, so it is inspected using Unix tools.
+File: human_sample_list.csv
+Columns:
+1. Study code
+2. ena_ers_sample_id (our main interest)
+3. Sample alias
 
-
-File structure
-
-The CSV file contains three columns:
-* Study code
-* ena_ers_sample_id
-* Sample alias
-
-We focus on column 2 (ena_ers_sample_id).
-
-
-### 2.1 Identify Sample ID Prefixes
-
-Extract unique study codes and sample ID prefixes to understand the ID formats.
+Use Unix tools for large files:
 
 ```bash
 cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
 
-# Save unique prefixes from column 2 to a textfile
-tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.tx
+tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.txt
 ```
-Observed prefixes include:
 
-```
-Example prefixes:
-#ERR
-#ERS
-#SAMD
-#SAMEA
-#SAMN
-#SRR
-#SRS
-#SRX
-```
-### 2.2 Split Metalog File by Prefix
+**Example prefixes:** ERR, ERS, SAMD, SAMEA, SAMN, SRR, SRS, SRX
 
-To simplify downstream processing, create separate CSV files for each prefix.
-```
-# make different tables with different sample number prefixes (smaller and easier to run)
+---
+
+## 3. Create Separate Tables for Each Prefix
+
+```bash
 awk -F',' 'NR==1 || $2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^ERS/ {print}' human_sample_list.csv > ers_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^SAMD/ {print}' human_sample_list.csv > samd_ids.csv
 awk -F',' 'NR==1 || $2 ~ /^SAMEA/ {print}' human_sample_list.csv > samea_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SAMN/ {print}' human_sample_list.csv > samn_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRR/ {print}' human_sample_list.csv > srr_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRS/ {print}' human_sample_list.csv > srs_ids.csv
-awk -F',' 'NR==1 || $2 ~ /^SRX/{print}' human_sample_list.csv > srx_ids.csv
-````
-## 3. Load Sample Lists into R
+awk -F',' 'NR==1 || $2 ~ /^SAMN/ {p
+```
+Goal: Smaller files for easier processing in R.
 
-```{r}
+---
+
+## 4. Load Split Sample Lists into R
+```r
 library(readr)
 
 err_ids <- read_csv("Gradu_AMR/err_ids.csv")
@@ -79,138 +61,108 @@ srr_ids <- read_csv("Gradu_AMR/srr_ids.csv")
 srs_ids <- read_csv("Gradu_AMR/srs_ids.csv")
 srx_ids <- read_csv("Gradu_AMR/srx_ids.csv")
 ```
-### 3.1 Match Metalog IDs to TSE Accessions
+---
 
-Check whether any Metalog sample IDs match the acc column of the TSE object.
-```{r}
+## 5. Match Metalog Sample IDs to TSE Object
+
+```r
 matches_err <- err_ids$ena_ers_sample_id[err_ids$ena_ers_sample_id %in% df_col$acc]
 matches_ers <- ers_ids$ena_ers_sample_id[ers_ids$ena_ers_sample_id %in% df_col$acc]
 matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% df_col$acc]
 matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% df_col$acc]
 matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_col$acc]
-matches_srs<- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
+matches_srs <- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
 matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$acc]
 ```
-## 4. Attempt Matching by Numeric Suffix (Ignoring Prefix)
-Since prefixes such as ERR, SRR, or DRR may differ, matching was attempted using only the numeric part of the accession.
+Result: No matches found.
 
-```{r}
+---
+
+## 6. Try Matching by Numeric Suffix Only
+
+```r
 df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
 
 err_nums <- sub("^ERR", "", err_ids$ena_ers_sample_id)
 srr_nums <- sub("^SRR", "", srr_ids$ena_ers_sample_id)
-df_nums  <- sub("^[A-Z]+", "", df_filtered)
+df_nums <- sub("^[A-Z]+", "", df_filtered)
 
-err_df <- data.frame(type = "ERR", id = err_ids$ena_ers_sample_id, num = err_nums)
-srr_df <- data.frame(type = "SRR", id = srr_ids$ena_ers_sample_id, num = srr_nums)
-df_ref <- data.frame(type = "df_col", id = df_filtered, num = df_nums)
+err_df <- data.frame(type="ERR", id=err_ids$ena_ers_sample_id, num=err_nums)
+srr_df <- data.frame(type="SRR", id=srr_ids$ena_ers_sample_id, num=srr_nums)
+df_ref <- data.frame(type="df_col", id=df_filtered, num=df_nums)
 
 combined <- rbind(err_df, srr_df)
-matches <- merge(combined, df_ref, by = "num", suffixes = c("_query", "_df"))
-
+matches <- merge(combined, df_ref, by="num", suffixes=c("_query","_df"))
 matches
 ```
-Result:
-No matches were found. This was also confirmed by manual inspection.
+Result: No matches — confirmed manually.
 
-## 5. Compare Metalog Samples to a New SRA Metadata File
+---
 
-A new SRA metadata file containing biosample IDs was used for comparison.
+## 7. Compare with New SRA Metadata (Biosamples)
 
-```{r}
-SRA_metadata_with_biosample <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
-View(SRA_metadata_with_biosample)
-```
-### 5.1 Match Biosample IDs
-```{r}
+```r
+SRA_metadata <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
+View(SRA_metadata)
 
-matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
-length(matches_samd)
-# --> 27
+# Check matches by biosample
+matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
+matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
+matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
 
-matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
-length(matches_samea)
+# Match counts
+length(matches_samd)  # 27
+length(matches_samea) # 1617
+length(matches_samn)  # 1976
 
-matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata_with_biosample$biosample]
-length(matches_samea)
-```
-Match counts:
-- SAMD: 27
-- SAMEA: 1617
-- SAMN: 1976
-- Total matches: 3620
-
-## 6. Annotate SRA Metadata with Metalog Matches
-
-Create a binary column (Metalog) indicating whether a biosample appears in Metalog.
-
-```{r}
+# Total unique matches
 all_matches <- c(matches_samd, matches_samea, matches_samn)
-length(all_matches)
-
-SRA_metadata_with_biosample$Metalog <- ifelse(SRA_metadata_with_biosample$biosample %in% all_matches, 1, 0)
-sum(SRA_metadata_with_biosample$Metalog == 1, na.rm = TRUE)
-# Result: 5391
 ```
-Why is 5391 > 3620?
+---
 
-The higher number indicates duplicate biosample IDs in the SRA table.
+## 8. Annotate SRA Table with Metalog Matches
 
-### 6.1 Investigate Duplicate Biosample IDs
+```r
+SRA_metadata$Metalog <- ifelse(SRA_metadata$biosample %in% all_matches, 1, 0)
 
-```{r}
-library(dplyr)
-
-# SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]
-# returns a vector of biosample IDs that had a match in all_matches list (number 1).
-# unique removes all the duplicate values and length gives the length of the list.
-
-length(unique(SRA_metadata_with_biosample$biosample[SRA_metadata_with_biosample$Metalog == 1]))
-# 3620 --> same value as in the all_matches list, so there are duplicates
-
-length(unique(all_matches))
-# 3620 --> all are unique values
-
-```
-Duplicates confirmed.
-
-```{r}
-#keep biosample numbers with Metalog value 1, count the biomaple values and keep only duplicates (or count > 1)
-matched_rows <- SRA_metadata_with_biosample[SRA_metadata_with_biosample$Metalog == 1, ]
+# Check duplicates
+matched_rows <- SRA_metadata[SRA_metadata$Metalog == 1, ]
 biosample_counts <- table(matched_rows$biosample)
 duplicates <- names(biosample_counts[biosample_counts > 1])
+length(duplicates)  # 381 duplicates
 
-length(duplicates)
-# 381
+# Example duplicate
+SRA_metadata %>% filter(biosample == "SAMEA2466887")
 ```
-Example duplicate:
-```{r}
-head(duplicates)
-# "SAMEA2466887" "SAMEA2466888" "SAMEA2466890" "SAMEA2466891" "SAMEA2466892" "SAMEA2466898"
-```
-Duplicates exist in the biosample column. Let's identify them:
+Observation: Same biosample can appear multiple times with different accession numbers — likely multiple samples from the same patient.
 
-```{r}
-SRA_metadata_with_biosample %>% filter(biosample == "SAMEA2466887")
+---
 
-#        acc    biosample geo_loc_name_country_calc geo_loc_name_country_continent_calc platform          instrument
-# 1 ERR480588 SAMEA2466887                                                               ILLUMINA Illumina HiSeq 2000
-# 2 ERR479091 SAMEA2466887                                                               ILLUMINA Illumina HiSeq 2000
-#  bioproject avgspotlen mbases collection_date_sam Metalog
-# 1  PRJEB6070         63    327                           1
-# 2  PRJEB6070        145   1452                           1
+## 9. Filter Matched Samples
 
-```
-Interpretation:
-The same biosample ID appears with multiple sequencing accessions, likely representing multiple runs from the same biological sample (e.g. same patient).
-
-## 7. Filter Final Matched Dataset
-
-```
-SRA_metadata_with_biosample_matched_1 <- SRA_metadata_with_biosample %>% filter(Metalog == 1)
-
-View(SRA_metadata_with_biosample_matched_1)
+```r
+SRA_metadata_matched <- SRA_metadata %>% filter(Metalog == 1)
+View(SRA_metadata_matched)
 ```
 
-The amoutn of samples is low so we need try another dataset
+| Step | Input                             | Action                                | Output                     | Notes / Observations                                                   |
+| ---- | --------------------------------- | ------------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| 1    | `TSE_filtered.rds`                | Load TSE object, extract column `acc` | `df_col`                   | Accession numbers extracted for matching                               |
+| 2    | `human_sample_list.csv`           | Inspect large CSV with Unix           | `unique_sample_names.txt`  | Sample prefixes identified: ERR, ERS, SAMD, SAMEA, SAMN, SRR, SRS, SRX |
+| 3    | `human_sample_list.csv`           | Split by prefix                       | `*_ids.csv`                | Easier to process smaller files in R                                   |
+| 4    | `*_ids.csv`                       | Load into R                           | `err_ids`, `ers_ids`, etc. | Ready for matching                                                     |
+| 5    | TSE acc vs Metalog IDs            | Direct match                          | `matches_*`                | **No matches found**                                                   |
+| 6    | Numeric suffix match              | Match ignoring prefixes               | `matches`                  | **No matches**                                                         |
+| 7    | `SRA_metadata_with_biosample.txt` | Match Metalog biosample IDs           | `all_matches`              | Found 3620 unique matches                                              |
+| 8    | Annotate SRA metadata             | Add Metalog column                    | `SRA_metadata$Metalog`     | 5391 rows marked due to duplicates; 381 biosamples duplicated          |
+| 9    | Filter matched rows               | Keep only Metalog = 1                 | `SRA_metadata_matched`     | Ready for downstream analysis                                          |
+
+
+Conclusion:
+
+* Original TSE object does not match Metalog IDs directly.
+* Matching by numeric suffix also fails.
+* Comparison with updated SRA biosample metadata yields 3620 unique matches, with some duplicates.
+* Despite low coverage, keep this dataset for record and potential future use.
+
