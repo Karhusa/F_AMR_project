@@ -35,7 +35,14 @@ Overview:
 This workflow links SRA run-level metadata to SPIRE human metadata using shared BioSample IDs (SAMN, SAMD, SAMEA).
 The goal is to produce a clean, merged metadata table enriched with demographic, clinical, and antibiotic-related information.
 
+03_ Metadata Cleaning and Harmonization Workflow
 
+Input:
+cleaned_merged_final.tsv
+(merged SPIRE + SRA metadata, 24,605 rows)
+
+Goal:
+Create a clean, analysis-ready metadata table with harmonized BMI, age, disease status, infections, and antibiotic usage.
 
 
 
