@@ -1,326 +1,169 @@
-# Metadata curation with executable audit table
-
- The audit table can be regenerated at any time and exported as a TSV/CSV.
-
+# Workflow: Matching TSE Samples to Metalog / SRA Data
 ---
 
-## 0. Concept: Audit table
+## 1. Load and Inspect TSE Object
 
-* what operation was performed
-* which columns or rows were affected
-* why the decision was made
-* how many entries were kept or removed
----
+```r
+library(tibble)
 
-## 1. Initialise audit table
+TSE_filtered <- readRDS("~/Downloads/TSE_filtered.rds")
 
-```python
-import pandas as pd
-
-# Initialise audit table
-audit_log = []
-
-def log_audit(step, action, target, reason, before=None, after=None):
-    audit_log.append({
-        "step": step,
-        "action": action,
-        "target": target,
-        "reason": reason,
-        "n_before": before,
-        "n_after": after
-    })
+df_col <- as_tibble(colData(TSE_filtered))
+View(df_col)
 ```
+Goal: Check which accession numbers are present in the TSE object.
 
 ---
 
-## 2. Download and inspect SRA metadata with BioSample IDs
+## 2. Download Sample List from Metalog and Inspect Accession Numbers
+
+File: human_sample_list.csv
+Columns:
+1. Study code
+2. ena_ers_sample_id (our main interest)
+3. Sample alias
+
+Use Unix tools for large files:
 
 ```bash
-head -n 1 SRA_metadata_with_biosample_corrected.txt | tr ',' '\n' | nl
-```
-Columns present:
+cut -d',' -f1 human_sample_list.csv | sort -u > studies.txt
 
-1. acc
-2. biosample
-3. geo_loc_name_country_calc
-4. geo_loc_name_country_continent_calc
-5. platform
-6. instrument
-7. bioproject
-8. avgspotlen
-9. mbases
-10. collection_date_sam
+tail -n +2 human_sample_list.csv | cut -d',' -f2 | sed 's/[0-9]*//g' | sort -u > unique_sample_names.txt
+```
+
+**Example prefixes:** ERR, ERS, SAMD, SAMEA, SAMN, SRR, SRS, SRX
+
+---
+
+## 3. Create Separate Tables for Each Prefix
 
 ```bash
-grep -oE '\bSAM(N|D|EA)[0-9]+' SRA_metadata_with_biosample_corrected.txt | sort -u > sra_biosample_ids.txt
-wc -l sra_biosample_ids.txt
+awk -F',' 'NR==1 || $2 ~ /^ERR/ {print}' human_sample_list.csv > err_ids.csv
+awk -F',' 'NR==1 || $2 ~ /^ERS/ {print}' human_sample_list.csv > ers_ids.csv
+awk -F',' 'NR==1 || $2 ~ /^SAMD/ {print}' human_sample_list.csv > samd_ids.csv
+awk -F',' 'NR==1 || $2 ~ /^SAMEA/ {print}' human_sample_list.csv > samea_ids.csv
+awk -F',' 'NR==1 || $2 ~ /^SAMN/ {p
 ```
-
-```python
-log_audit(
-    step="SRA metadata inspection",
-    action="extract unique BioSample IDs",
-    target="biosample",
-    reason="Identify sample identifiers for later matching",
-    after=54178
-)
-```
+Goal: Smaller files for easier processing in R.
 
 ---
 
-## 3. Inspect human_all_wide metadata
+## 4. Load Split Sample Lists into R
+```r
+library(readr)
 
-```bash
-gzcat human_all_wide_2025-10-19.tsv.gz | wc -l
-gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 | awk -F'\t' '{print NF}'
+err_ids <- read_csv("Gradu_AMR/err_ids.csv")
+ers_ids <- read_csv("Gradu_AMR/ers_ids.csv")
+samd_ids <- read_csv("Gradu_AMR/samd_ids.csv")
+samea_ids <- read_csv("Gradu_AMR/samea_ids.csv")
+samn_ids <- read_csv("Gradu_AMR/samn_ids.csv")
+srr_ids <- read_csv("Gradu_AMR/srr_ids.csv")
+srs_ids <- read_csv("Gradu_AMR/srs_ids.csv")
+srx_ids <- read_csv("Gradu_AMR/srx_ids.csv")
 ```
+---
 
-```bash
-gzcat human_all_wide_2025-10-19.tsv.gz | grep -oE '\bSAM(N|D|EA)[0-9]+' | sort -u > biosample_ids.txt
-```
+## 5. Match Metalog Sample IDs to TSE Object
 
-```python
-log_audit(
-    step="Human metadata inspection",
-    action="extract unique BioSample IDs",
-    target="spire_sample_name",
-    reason="Determine overlap with SRA metadata",
-    after=81436
-)
+```r
+matches_err <- err_ids$ena_ers_sample_id[err_ids$ena_ers_sample_id %in% df_col$acc]
+matches_ers <- ers_ids$ena_ers_sample_id[ers_ids$ena_ers_sample_id %in% df_col$acc]
+matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% df_col$acc]
+matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% df_col$acc]
+matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% df_col$acc]
+matches_srr <- srr_ids$ena_ers_sample_id[srr_ids$ena_ers_sample_id %in% df_col$acc]
+matches_srs <- srs_ids$ena_ers_sample_id[srs_ids$ena_ers_sample_id %in% df_col$acc]
+matches_srx <- srx_ids$ena_ers_sample_id[srx_ids$ena_ers_sample_id %in% df_col$acc]
 ```
+Result: No matches found.
 
 ---
 
-## 4. Identify overlapping BioSample IDs
+## 6. Try Matching by Numeric Suffix Only
 
-```bash
-sort biosample_ids.txt > biosample_ids_sorted.txt
-sort sra_biosample_ids.txt > sra_biosample_ids_sorted.txt
-comm -12 biosample_ids_sorted.txt sra_biosample_ids_sorted.txt > matched_biosamples.txt
-wc -l matched_biosamples.txt
-```
+```r
+df_filtered <- df_col$acc[grepl("^(SRR|ERR|DRR)", df_col$acc)]
 
-```python
-log_audit(
-    step="Sample matching",
-    action="intersection",
-    target="BioSample IDs",
-    reason="Restrict analysis to samples present in both datasets",
-    after=20339
-)
+err_nums <- sub("^ERR", "", err_ids$ena_ers_sample_id)
+srr_nums <- sub("^SRR", "", srr_ids$ena_ers_sample_id)
+df_nums <- sub("^[A-Z]+", "", df_filtered)
+
+err_df <- data.frame(type="ERR", id=err_ids$ena_ers_sample_id, num=err_nums)
+srr_df <- data.frame(type="SRR", id=srr_ids$ena_ers_sample_id, num=srr_nums)
+df_ref <- data.frame(type="df_col", id=df_filtered, num=df_nums)
+
+combined <- rbind(err_df, srr_df)
+matches <- merge(combined, df_ref, by="num", suffixes=c("_query","_df"))
+matches
 ```
+Result: No matches — confirmed manually.
 
 ---
 
-## 5. Merge workflow
+## 7. Compare with New SRA Metadata (Biosamples)
 
-* Subset both datasets using shared BioSample IDs
-* Merge on BioSample ID
-* Retain clinically relevant metadata fields
-* Remove irrelevant or sensitive columns
-* Handle large files via chunked reading
+```r
+SRA_metadata <- read.csv("~/F_AMR_project/Gradu_AMR/SRA_metadata_with_biosample.txt")
+View(SRA_metadata)
 
-```python
-import re
+# Check matches by biosample
+matches_samd <- samd_ids$ena_ers_sample_id[samd_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
+matches_samea <- samea_ids$ena_ers_sample_id[samea_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
+matches_samn <- samn_ids$ena_ers_sample_id[samn_ids$ena_ers_sample_id %in% SRA_metadata$biosample]
 
-human_file = "human_all_wide_2025-10-19.tsv.gz"
-sra_file = "SRA_metadata_with_biosample_corrected.txt"
-matched_file = "matched_biosamples.txt"
-final_output = "cleaned_merged_final.tsv"
+# Match counts
+length(matches_samd)  # 27
+length(matches_samea) # 1617
+length(matches_samn)  # 1976
 
-id_col_human = "spire_sample_name"
-id_col_sra = "biosample"
-
-chunksize = 20000
+# Total unique matches
+all_matches <- c(matches_samd, matches_samea, matches_samn)
 ```
-### 4.3 Define Keywords for Column Filtering
+---
 
-These keywords retain columns related to:
-* Demographics (age, sex, BMI)
-* Diseases and conditions
-* Antibiotic and drug exposure
+## 8. Annotate SRA Table with Metalog Matches
 
-```python
+```r
+SRA_metadata$Metalog <- ifelse(SRA_metadata$biosample %in% all_matches, 1, 0)
 
-keywords = [
-    "bmi", "body mass", "antibiotic", "antimicrobial", "drug",
-    "sex", "gender", "age", "disease", "diagnosis", "condition",
-    "infection", "immune", "inflammation", "therapy", "treatment",
-    "cycline", "cillin", "phenicol", "bactam", "beta", "lactamase", "inhibitor",
-    "cef", "loracarbef", "flomoxef", "latamoxef", "onam", "penem", "cilastatin",
-    "cephalexin", "dazole", "mycin", "prim", "sulfa", "tylosin", "tilmicosin",
-    "tylvacosin", "tildipirosin", "macrolide", "quinupristin", "dalfopristin",
-    "xacin", "acid", "flumequine", "olaquindox", "sulfonamide", "tetracycline",
-    "nitrofuran", "amphenicol", "polymyxin", "quinolone",
-    "aminoglycoside", "teicoplanin", "vancin", "colistin", "polymyxin b",
-    "nitro", "fura", "nifru", "micin", "tiamulin", "valnemulin",
-    "xibornol", "clofoctol", "methenamine", "zolid", "lefamulins",
-    "gepotidacin", "bacitracin", "novobiocin",
-    "asthma", "cancer", "uti", "ibd", "crohn", "intestine",
-    "ulcerative", "colitis"
-]
-keywords = [kw.lower() for kw in keywords]
+# Check duplicates
+matched_rows <- SRA_metadata[SRA_metadata$Metalog == 1, ]
+biosample_counts <- table(matched_rows$biosample)
+duplicates <- names(biosample_counts[biosample_counts > 1])
+length(duplicates)  # 381 duplicates
+
+# Example duplicate
+SRA_metadata %>% filter(biosample == "SAMEA2466887")
 ```
-## 4.4 Define Exclusion Keywords
-
-Columns containing these terms are removed.
-
-```
-exclude_keywords = [
-    "sexual", "private", "identifier", "confidential", "contact",
-    "gestational", "beverages", "stage", "vitamin", "alcohol",
-    "average", "home", "sports", "strength", "siblings", "blockage"
-]
-```
-
-### 5.1 Load matched BioSamples
-
-```python
-matched_biosamples = pd.read_csv(
-    matched_file, header=None, names=[id_col_sra], dtype=str
-)
-matched_set = set(matched_biosamples[id_col_sra])
-
-log_audit(
-    step="Load matched samples",
-    action="load",
-    target="matched_biosamples",
-    reason="Define reference set for subsetting",
-    after=len(matched_set)
-)
-```
+Observation: Same biosample can appear multiple times with different accession numbers — likely multiple samples from the same patient.
 
 ---
 
-### 5.2 Subset human metadata
+## 9. Filter Matched Samples
 
-```python
-human_subset_file = "tmp_human_subset.tsv"
-first = True
-
-for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
-    filtered = chunk[chunk[id_col_human].isin(matched_set)]
-    filtered.to_csv(
-        human_subset_file,
-        sep="\t",
-        index=False,
-        mode="w" if first else "a",
-        header=first
-    )
-    first = False
-
-human = pd.read_csv(human_subset_file, sep="\t", dtype=str)
+```r
+SRA_metadata_matched <- SRA_metadata %>% filter(Metalog == 1)
+View(SRA_metadata_matched)
 ```
 
-```python
-log_audit(
-    step="Human metadata filtering",
-    action="row filter",
-    target="human_all_wide",
-    reason="Keep only samples present in SRA",
-    after=human.shape[0]
-)
-```
+| Step | Input                             | Action                                | Output                     | Notes / Observations                                                   |
+| ---- | --------------------------------- | ------------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
+| 1    | `TSE_filtered.rds`                | Load TSE object, extract column `acc` | `df_col`                   | Accession numbers extracted for matching                               |
+| 2    | `human_sample_list.csv`           | Inspect large CSV with Unix           | `unique_sample_names.txt`  | Sample prefixes identified: ERR, ERS, SAMD, SAMEA, SAMN, SRR, SRS, SRX |
+| 3    | `human_sample_list.csv`           | Split by prefix                       | `*_ids.csv`                | Easier to process smaller files in R                                   |
+| 4    | `*_ids.csv`                       | Load into R                           | `err_ids`, `ers_ids`, etc. | Ready for matching                                                     |
+| 5    | TSE acc vs Metalog IDs            | Direct match                          | `matches_*`                | **No matches found**                                                   |
+| 6    | Numeric suffix match              | Match ignoring prefixes               | `matches`                  | **No matches**                                                         |
+| 7    | `SRA_metadata_with_biosample.txt` | Match Metalog biosample IDs           | `all_matches`              | Found 3620 unique matches                                              |
+| 8    | Annotate SRA metadata             | Add Metalog column                    | `SRA_metadata$Metalog`     | 5391 rows marked due to duplicates; 381 biosamples duplicated          |
+| 9    | Filter matched rows               | Keep only Metalog = 1                 | `SRA_metadata_matched`     | Ready for downstream analysis                                          |
 
----
 
-### 5.3 Subset SRA metadata
+Conclusion:
 
-```python
-sra = pd.read_csv(sra_file, sep=",", dtype=str)
-before = sra.shape[0]
-sra = sra[sra[id_col_sra].isin(matched_set)]
-```
+* Original TSE object does not match Metalog IDs directly.
+* Matching by numeric suffix also fails.
+* Comparison with updated SRA biosample metadata yields 3620 unique matches, with some duplicates.
+* Despite low coverage, keep this dataset for record and potential future use.
 
-```python
-log_audit(
-    step="SRA metadata filtering",
-    action="row filter",
-    target="SRA_metadata",
-    reason="Keep only samples present in human metadata",
-    before=before,
-    after=sra.shape[0]
-)
-```
 
----
-
-### 5.4 Merge datasets
-
-```python
-merged = pd.merge(
-    human, sra,
-    left_on=id_col_human,
-    right_on=id_col_sra,
-    how="inner",
-    validate="many_to_many"
-)
-```
-
-```python
-log_audit(
-    step="Merge",
-    action="inner join",
-    target="human + SRA",
-    reason="Combine biological and sequencing metadata",
-    after=merged.shape[0]
-)
-```
-
----
-
-## 6. Column filtering with documented rationale
-
-```python
-keywords = [kw.lower() for kw in keywords]
-
-def keep_keyword(c):
-    return any(kw in c.lower() for kw in keywords)
-
-def drop_excluded(c):
-    return any(bad in c.lower() for bad in exclude_keywords)
-
-always_keep = set(sra.columns.tolist() + [id_col_human])
-keyword_keep = {c for c in merged.columns if keep_keyword(c)}
-
-cols_to_keep = sorted(
-    c for c in (always_keep | keyword_keep)
-    if c in merged.columns and not drop_excluded(c)
-)
-
-merged_clean = merged[cols_to_keep]
-```
-
-```python
-log_audit(
-    step="Column filtering",
-    action="column selection",
-    target="merged dataset",
-    reason="Retain demographic, clinical, and treatment-related metadata",
-    before=merged.shape[1],
-    after=len(cols_to_keep)
-)
-```
-
----
-
-## 7. Save outputs
-
-```python
-merged_clean.to_csv(final_output, sep="\t", index=False)
-```
-
-```python
-# Convert audit log to table and save
-audit_table = pd.DataFrame(audit_log)
-audit_table.to_csv("metadata_audit_table.tsv", sep="\t", index=False)
-```
-
----
-
-## Outputs produced
-
-* `cleaned_merged_final.tsv` — curated metadata for analysis
-* `metadata_audit_table.tsv` — **fully reproducible audit trail of all decisions**
-
-This file can be cited directly in Methods or provided as Supplementary Material.
