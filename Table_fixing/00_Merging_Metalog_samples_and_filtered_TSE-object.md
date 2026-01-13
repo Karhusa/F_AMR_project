@@ -145,6 +145,9 @@ Observation: Same biosample can appear multiple times with different accession n
 SRA_metadata_matched <- SRA_metadata %>% filter(Metalog == 1)
 View(SRA_metadata_matched)
 ```
+---
+
+## 10. Audit log
 
 | Step | Input                             | Action                                | Output                     | Notes / Observations                                                   |
 | ---- | --------------------------------- | ------------------------------------- | -------------------------- | ---------------------------------------------------------------------- |
@@ -157,7 +160,7 @@ View(SRA_metadata_matched)
 | 7    | `SRA_metadata_with_biosample.txt` | Match Metalog biosample IDs           | `all_matches`              | Found 3620 unique matches                                              |
 | 8    | Annotate SRA metadata             | Add Metalog column                    | `SRA_metadata$Metalog`     | 5391 rows marked due to duplicates; 381 biosamples duplicated          |
 | 9    | Filter matched rows               | Keep only Metalog = 1                 | `SRA_metadata_matched`     | Ready for downstream analysis                                          |
-
+---
 
 Conclusion:
 
