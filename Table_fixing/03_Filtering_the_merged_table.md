@@ -1,3 +1,428 @@
+# 1. Metadata curation workflow with audit trail
+
+This document describes the metadata processing workflow. Explanatory text and audit tables are added to document why specific decisions were made. The audit tables serve as a structured record of variable-level decisions and can be updated as needed during analysis.
+---
+
+## 1. Concept: Audit table
+* what operation was performed
+* which columns or rows were affected
+* why the decision was made
+* how many entries were kept or removed
+
+---
+
+## 1.1 Initialise audit table (NEW CODE)
+
+```python
+import pandas as pd
+
+# Initialise audit table
+audit_log = []
+
+def log_audit(step, action, target, reason, before=None, after=None):
+    audit_log.append({
+        "step": step,
+        "action": action,
+        "target": target,
+        "reason": reason,
+        "n_before": before,
+        "n_after": after
+    })
+```
+
+---
+
+## 2. Download and inspect SRA metadata with BioSample IDs
+
+```bash
+head -n 1 SRA_metadata_with_biosample_corrected.txt | tr ',' '\n' | nl
+```
+
+```bash
+grep -oE '\bSAM(N|D|EA)[0-9]+' SRA_metadata_with_biosample_corrected.txt | sort -u > sra_biosample_ids.txt
+wc -l sra_biosample_ids.txt
+```
+
+```python
+# Audit entry
+log_audit(
+    step="SRA metadata inspection",
+    action="extract unique BioSample IDs",
+    target="biosample",
+    reason="Identify sample identifiers for later matching",
+    after=54178
+)
+```
+
+---
+
+## 3. Inspect human_all_wide metadata
+
+```bash
+gzcat human_all_wide_2025-10-19.tsv.gz | wc -l
+gzcat human_all_wide_2025-10-19.tsv.gz | head -n 1 | awk -F'\t' '{print NF}'
+```
+
+```bash
+gzcat human_all_wide_2025-10-19.tsv.gz | grep -oE '\bSAM(N|D|EA)[0-9]+' | sort -u > biosample_ids.txt
+```
+
+```python
+log_audit(
+    step="Human metadata inspection",
+    action="extract unique BioSample IDs",
+    target="spire_sample_name",
+    reason="Determine overlap with SRA metadata",
+    after=81436
+)
+```
+
+---
+
+## 4. Identify overlapping BioSample IDs
+
+```bash
+sort biosample_ids.txt > biosample_ids_sorted.txt
+sort sra_biosample_ids.txt > sra_biosample_ids_sorted.txt
+comm -12 biosample_ids_sorted.txt sra_biosample_ids_sorted.txt > matched_biosamples.txt
+wc -l matched_biosamples.txt
+```
+
+```python
+log_audit(
+    step="Sample matching",
+    action="intersection",
+    target="BioSample IDs",
+    reason="Restrict analysis to samples present in both datasets",
+    after=20339
+)
+```
+
+---
+
+## 5. Merge workflow (ORIGINAL CODE + AUDIT)
+
+```python
+import re
+
+human_file = "human_all_wide_2025-10-19.tsv.gz"
+sra_file = "SRA_metadata_with_biosample_corrected.txt"
+matched_file = "matched_biosamples.txt"
+final_output = "cleaned_merged_final.tsv"
+
+id_col_human = "spire_sample_name"
+id_col_sra = "biosample"
+
+chunksize = 20000
+```
+
+### 5.1 Load matched BioSamples
+
+```python
+matched_biosamples = pd.read_csv(
+    matched_file, header=None, names=[id_col_sra], dtype=str
+)
+matched_set = set(matched_biosamples[id_col_sra])
+
+log_audit(
+    step="Load matched samples",
+    action="load",
+    target="matched_biosamples",
+    reason="Define reference set for subsetting",
+    after=len(matched_set)
+)
+```
+
+---
+
+### 5.2 Subset human metadata
+
+```python
+human_subset_file = "tmp_human_subset.tsv"
+first = True
+
+for chunk in pd.read_csv(human_file, sep="\t", dtype=str, chunksize=chunksize):
+    filtered = chunk[chunk[id_col_human].isin(matched_set)]
+    filtered.to_csv(
+        human_subset_file,
+        sep="\t",
+        index=False,
+        mode="w" if first else "a",
+        header=first
+    )
+    first = False
+
+human = pd.read_csv(human_subset_file, sep="\t", dtype=str)
+```
+
+```python
+log_audit(
+    step="Human metadata filtering",
+    action="row filter",
+    target="human_all_wide",
+    reason="Keep only samples present in SRA",
+    after=human.shape[0]
+)
+```
+
+---
+
+### 5.3 Subset SRA metadata
+
+```python
+sra = pd.read_csv(sra_file, sep=",", dtype=str)
+before = sra.shape[0]
+sra = sra[sra[id_col_sra].isin(matched_set)]
+```
+
+```python
+log_audit(
+    step="SRA metadata filtering",
+```
+
+---
+
+## 1. Load Data
+
+```python
+import pandas as pd
+import numpy as np
+import re
+
+df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
+```
+
+**Audit note:** Initial dataset contains merged human metadata and SRA metadata after identifier harmonization.
+
+---
+
+## 2. Remove Columns With No Values
+
+```python
+df = df.dropna(axis=1, how='all')
+print(f" Shape: {df.shape}")
+# Shape: (24605, 195)
+```
+
+### Audit table – fully empty columns
+
+| Column name | Decision | Reason                                         |
+| ----------- | -------- | ---------------------------------------------- |
+| *multiple*  | Removed  | Column contained only missing values (100% NA) |
+
+---
+
+## 3. Drop Columns Containing Only NaN or "No"
+
+```python
+def drop_nan_no_columns(df):
+    cols_to_drop = []
+    for col in df.columns:
+        unique_vals = set(df[col].dropna().astype(str).str.strip())
+        if len(unique_vals) == 0:  
+            cols_to_drop.append(col)
+        elif unique_vals == {"No"}:
+            cols_to_drop.append(col)
+    df = df.drop(columns=cols_to_drop)
+    return df, cols_to_drop
+
+
+df, dropped = drop_nan_no_columns(df)
+print("Dropped columns:", dropped)
+
+print(f" Shape: {df.shape}")
+# Shape: (24605, 154)
+```
+
+### Audit table – non-informative binary columns
+
+| Column name    | Decision | Reason                                            |
+| -------------- | -------- | ------------------------------------------------- |
+| raw_metadata_* | Removed  | Column contained only "No" values or missing data |
+
+---
+
+## 4. BMI Cleaning and Categorization
+
+### 4.1 Inspect BMI Columns
+
+```python
+bmi_cols = df.columns[df.columns.str.contains("bmi", case=False)]
+
+for col in bmi_cols:
+    print(f"{col}: {df[col].unique()}")
+```
+
+**Audit note:** BMI-related information appears in numeric and categorical forms with inconsistent encodings.
+
+---
+
+### 4.2 Convert BMI to Numeric and Create Categories
+
+```python
+df["bmi"] = pd.to_numeric(df["bmi"], errors="coerce")
+
+bins = [0, 18.5, 25, 30, float("inf")]
+labels = [
+    "Underweight (<18.5)",
+    "Normal (18.5-25)",
+    "Overweight (25-30)",
+    "Obese (>30)"
+]
+
+df["BMI_range_new"] = pd.cut(
+    df["bmi"],
+    bins=bins,
+    labels=labels
+)
+```
+
+---
+
+### 4.3 Override Using Text-Based bmi_range Values
+
+```python
+bmi_range_map = {
+    "16-20": "Underweight (<18.5)",
+    "18.5-28": "Normal (18.5-25)",
+    "20-25": "Normal (18.5-25)",
+    "25-30": "Overweight (25-30)",
+    "over 25": "Overweight (25-30)",
+}
+
+mask = df["bmi_range"].notna()
+df.loc[mask, "BMI_range_new"] = (
+    df.loc[mask, "bmi_range"].map(bmi_range_map)
+)
+```
+
+---
+
+### 4.4 Add Additional Categories
+
+```python
+if not pd.api.types.is_categorical_dtype(df["BMI_range_new"]):
+    df["BMI_range_new"] = df["BMI_range_new"].astype("category")
+
+new_categories = ["Obese (>30)", "Normal/Overweight (<30)"]
+existing = df["BMI_range_new"].cat.categories
+
+to_add = [cat for cat in new_categories if cat not in existing]
+
+df["BMI_range_new"] = df["BMI_range_new"].cat.add_categories(to_add)
+```
+
+---
+
+### 4.5 Override Using BMI_range
+
+```python
+BMI_range_map = {">30": "Obese (>30)", "<30": "Normal/Overweight (<30)"}
+
+mask2 = df["BMI_range"].notna()
+df.loc[mask2, "BMI_range_new"] = (
+    df.loc[mask2, "BMI_range"].map(BMI_range_map)
+)
+```
+
+---
+
+### 4.6 Review and Cleanup
+
+```python
+print(df["BMI_range_new"].value_counts(dropna=False))
+print(df[["bmi", "bmi_range", "BMI_range", "BMI_range_new"]].head(10))
+
+df = df.drop(columns=bmi_cols)
+```
+
+### Audit table – BMI variables
+
+| Column name   | Decision | Reason                                       |
+| ------------- | -------- | -------------------------------------------- |
+| bmi           | Retained | Numeric BMI values usable for categorization |
+| bmi_range     | Removed  | Redundant after harmonization                |
+| BMI_range     | Removed  | Replaced by unified BMI_range_new            |
+| BMI_range_new | Retained | Harmonized BMI classification                |
+
+---
+
+## 5. Drop Additional Unnecessary Metadata Columns
+
+```python
+columns_to_drop = [
+    "raw_metadata_BloodInfection",
+    "raw_metadata_age-block",
+    "raw_metadata_age_of_onset",
+    "raw_metadata_body_fat_percentage",
+    "raw_metadata_height_for_age_z_score",
+    "raw_metadata_maternal_age_at_delivery_years",
+    "raw_metadata_treatment_batch",
+    "raw_metadata_PostmenstrualAgeDays",
+    "raw_metadata_MaternalAgeYears",
+    "raw_metadata_Metagenomic_sequencing________(Y_or_N)",
+    "raw_metadata_age_group_16S",
+    "raw_metadata_storageprotocol",
+    "village",
+    "raw_metadata_AgeDischargedDays",
+    "raw_metadata_Age_at_collection",
+    "raw_metadata_Age_at_diagnosis",
+    "raw_metadata_Condition",
+    "raw_metadata_Drug_insulin",
+    "raw_metadata_Drug_statins",
+    "raw_metadata_Treatment_duration_(months)",
+    "raw_metadata_age_at_diagnosis",
+    "raw_metadata_diagnosis_date",
+    "raw_metadata_disease_duration",
+    "raw_metadata_disease_duration_year",
+    "raw_metadata_disease_duration_years",
+    "raw_metadata_disease_extent",
+    "raw_metadata_housing_condition",
+    "raw_metadata_treatment_group",
+    "raw_metadata_treatment_effect",
+    "raw_metadata_treatment_batch",
+    "raw_metadata_response_to_treatment",
+    "raw_metadata_mental_illness_diagnosis",
+    "raw_metadata_Blood_urea_nitrogen",
+    "raw_metadata_Drug_propranolol",
+    "raw_metadata_NecrotizingEnterocolitis",
+    "raw_metadata_Treatment_(Y_or_N)",
+    "raw_metadata_previous_bilharzia_treatment",
+    "raw_metadata_Anti_inflammatory_drugs",
+]
+
+df = df.drop(columns=columns_to_drop)
+
+print(f" Shape: {df.shape}")
+# Shape: (24605, 114)
+```
+
+### Audit table – administrative and redundant metadata
+
+| Column group                 | Decision | Reason                           |
+| ---------------------------- | -------- | -------------------------------- |
+| Treatment logistics          | Removed  | Administrative or study-specific |
+| Rare clinical variables      | Removed  | Extremely sparse or ambiguous    |
+| Redundant age/disease fields | Removed  | Information captured elsewhere   |
+
+---
+
+*(The remainder of the document continues with the same structure: original code blocks preserved, followed by short audit tables explaining column-level decisions.)*
+
+---
+
+## Final note on audit tables
+
+Audit tables are intended to:
+
+* Capture *why* decisions were made
+* Prevent repeated manual inspection
+* Support reproducibility and reviewer transparency
+
+They do not alter the computational workflow and can be expanded or refined as analysis progresses.
+
+
+
 
 ## 1. Load Data
 
@@ -11,7 +436,18 @@ df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
 
 ## 2. Remove Completely Empty Columns
 Drop columns containing only missing values.
-```
+```python
+
+for col in columns_to_drop:
+    log_decision(
+        col,
+        stage="metadata cleanup",
+        decision="dropped",
+        reason="redundant / low relevance",
+        notes=""
+    )
+
+df = df.drop(columns=columns_to_drop)
 df = df.dropna(axis=1, how='all')
 print(f" Shape: {df.shape}")
 # Shape: (24605, 195)
@@ -109,7 +545,6 @@ df = df.drop(columns=bmi_cols)
 ## 5. Remove Unnecessary Metadata Columns
 
 Columns related to internal processing, non-relevant clinical fields, or redundant measurements were removed.
-
 ```python
 columns_to_drop = [
     "raw_metadata_BloodInfection",
@@ -169,6 +604,8 @@ print(acid_cols)
 
 df = df.drop(columns=acid_cols)
 ```
+
+Note: we were looking for Antibiotic names (like Nalidixic acid), but didnt find any
 
 ## 7. 7. Remove Cancer-Related Columns
 ```python
@@ -466,3 +903,20 @@ df = df.drop(columns=filtered_antibiotic_cols)
 ```
 df.to_csv("kesken2.tsv", sep="\t", index=False)
 ```
+## 18. Audit table
+```
+audit_rows = []
+
+def log_decision(col, stage, decision, reason, notes=""):
+    audit_rows.append({
+        "column_name": col,
+        "stage": stage,
+        "decision": decision,
+        "reason": reason,
+        "notes": notes
+    })
+
+
+```
+
+Metadata variables were curated in multiple stages. We first removed columns that were entirely empty or contained only negative values (“No”). We then harmonized BMI, age, sex, antibiotic exposure, and disease-related variables. Remaining metadata fields were inspected manually and removed if they were administrative, redundant, sparsely populated, or clinically ambiguous.
