@@ -1,15 +1,40 @@
+# 1. Metadata curation workflow with audit trail
 
-# Final fixes
+This document describes the metadata processing workflow. 
+Explanatory text and audit tables are added to document why specific decisions were made. The audit tables serve as a structured record of variable-level decisions and can be updated as needed during analysis.
 
-## 1. Download the file
+Audit table:
+* what operation was performed
+* which columns or rows were affected
+* why the decision was made
+* how many entries were kept or removed
+
+## 2. Download the file
 
 ```{r}
-port numpy as np
+import numpy as np
 import pandas as pd
 import re
 
 df = pd.read_csv("kesken2.tsv", sep="\t")
+```
+## 2.2 Initialise audit table
 
+```python
+import pandas as pd
+
+# Initialise audit table
+audit_log = []
+
+def log_audit(step, action, target, reason, before=None, after=None):
+    audit_log.append({
+        "step": step,
+        "action": action,
+        "target": target,
+        "reason": reason,
+        "n_before": before,
+        "n_after": after
+    })
 ```
 
 ## 2. Size and names of the columns
