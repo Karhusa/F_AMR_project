@@ -1,16 +1,17 @@
 
-Size and shape
+## 1.Size and shape
 
-```
+```python
 print("DataFrame shape:", df.shape)
 #DataFrame shape: (24605, 39)
 
 print(df.info())
 ```
+---
 
-How many samples we have with age, antibiotics usage and ctrlpatient
+## 2. How many samples we have with age, antibiotics usage and ctrlpatient
 
-```
+```python
 sub = df[df["age_category"].notna()]
 
 age_abx_counts = (
@@ -36,7 +37,7 @@ child, adolescent            74    0
 child, adolescent, adult   1165    0
 ```
 
-##2. Update the age_category column
+## 3. Update the age_category column
 
 Some values of the age_categoryncolumn include multiple categories
 --> Lets fix this
@@ -48,6 +49,8 @@ child_age_years = {
 }
 
 df.loc[df["age_years"].isin(child_age_years), "age_category"] = "child"
+
+
 
 df.to_csv("kesken5.tsv", sep="\t", index=False)
 ```
