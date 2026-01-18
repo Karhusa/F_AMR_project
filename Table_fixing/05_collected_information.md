@@ -16,9 +16,13 @@ print(df.info())
 ```
 ---
 
-## 2. Create a new age category: age_category_new
+## 3. Create a new age category: age_category_new
 
 ```python
+
+import numpy as np
+import pandas as pd
+import re
 
 def extract_age(val):
     if pd.isna(val):
@@ -64,7 +68,7 @@ df.to_csv("kesken5.tsv", sep="\t", index=False)
 ```
 ___
 
-## 3. How many samples we have with age, antibiotics usage and ctr lpatient
+## 4. How many samples we have with age, antibiotics usage and ctr lpatient
 
 ```python
 sub = df[df["age_category_new"].notna()]
@@ -439,9 +443,12 @@ for c in categorical_cols:
 print(df.index.is_unique)          # True
 print(df.dtypes)                   # Check types
 print(df.isna().sum().sort_values(ascending=False).head(10))  # Missing values
+´´´
+
+df = df.replace("", pd.NA)
 
 ```
-## 10. Lets modify the antibiotic columns:
+Lets modify the antibiotic columns:
 
 ```
 
@@ -457,8 +464,5 @@ for col in antibiotic_cols:
         df.loc[df[col] == ab, ab] = 'Yes'
 
 df = df.drop(columns=antibiotic_cols, errors='ignore')
-df.index.name = "acc"
+
 df.to_csv("keskenab.tsv", sep="\t", index=True)
-
-```
-
