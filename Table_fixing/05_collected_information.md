@@ -1,6 +1,6 @@
-## Headline
+# Headline
 
-## 1.Size and shape
+## 1. Size and Shape
 
 ```python
 import numpy as np
@@ -10,10 +10,11 @@ import re
 df = pd.read_csv("kesken4.tsv", sep="\t")
 
 print("DataFrame shape:", df.shape)
-#DataFrame shape: (24605, 39)
+# DataFrame shape: (24605, 39)
 
 print(df.info())
 ```
+
 ---
 
 ## 3. Create a new age category: age_category_new
@@ -65,6 +66,7 @@ df["age_category_new"] = df["age_years"].apply(age_category_from_raw)
 df = df.drop(columns=["age_category"])
 
 df.to_csv("kesken5.tsv", sep="\t", index=False)
+
 ```
 ___
 
@@ -265,6 +267,7 @@ Young adult      female Normal (18.5-25)         503    1
 ---
 
 ## /. AGE + SEX + GI + ABX
+
 ```python
 age_sex_GI_abx = (
     sub
