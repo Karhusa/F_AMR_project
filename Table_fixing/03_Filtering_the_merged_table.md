@@ -192,6 +192,175 @@ print(f" Shape: {df.shape}")
 
 ---
 
+## 6. Remove Acid-Related Columns
+
+```python
+acid_cols = df.columns[df.columns.str.contains("acid", case=False)]
+df = df.drop(columns=acid_cols)
+
+```
+
+---
+
+## 7. Remove Cancer-Related Columns
+
+```python
+cancer_cols = df.columns[df.columns.str.contains("cancer", case=False)]
+df = df.drop(columns=cancer_cols)
+```
+
+---
+
+## 8. Infection-Related Columns
+### 8.1 Drop High-Level Infection Control Columns
+
+```python
+infection_cols = [c for c in df.columns if c.startswith("raw_metadata_Infection_")]
+df = df.drop(columns=infection_cols)
+
+```
+
+---
+
+### 8.2 Drop Selected Infection Variables
+```python
+df = df.drop(columns=[
+    "raw_metadata_OtherInfection",
+    "raw_metadata_TrachealInfection",
+    "raw_metadata_schistosoma_infection_intensity",
+])
+```
+
+---
+
+
+## 9. Antibiotic Usage Processing
+
+### 9.1 Identify Antibiotic Indicator Columns
+
+```python
+antibiotic_cols = (
+    [c for c in df.columns if c.startswith("raw_metadata_w_")] +
+    [c for c in df.columns if c.startswith("raw_metadata_c_")] +
+    [c for c in df.columns if c.startswith("raw_metadata_m_")]
+)
+```
+
+9.2 Extract Antibiotics Used Per Sample
+def get_antibiotics_list(row):
+    used = []
+    for col in antibiotic_cols:
+        if row[col] == 1:
+            used.append(col.split("_", 2)[-1])
+    return used
+
+df["antibiotics_list"] = df.apply(get_antibiotics_list, axis=1)
+df["Antibiotics_used"] = df["antibiotics_list"].apply(
+    lambda x: "Yes" if len(x) > 0 else "No"
+)
+
+9.3 Remove Raw Antibiotic Columns
+df = df.drop(columns=antibiotic_cols)
+
+10. Disease Columns
+10.1 Remove Redundant Disease Fields
+df = df.drop(columns=[
+    "raw_metadata_Celiac_disease",
+    "raw_metadata_Disease_activity_(Y_or_N)",
+    "raw_metadata_diagnosed_with_disease",
+    "raw_metadata_disease_cause",
+    "raw_metadata_disease_group",
+])
+
+11. Final Column Cleanup
+df = df.drop(columns=["raw_metadata_weight_for_age_z_score"])
+print(df.shape)
+# (24605, 63)
+
+12. IBD Status
+df["IBD"] = (
+    df["raw_metadata_IBD"]
+    .map({"Y": "Yes", "N": "No"})
+    .astype("category")
+)
+
+df = df.drop(columns=["raw_metadata_IBD"])
+
+13. Export Intermediate Table
+df.to_csv("kesken1.tsv", sep="\t", index=False)
+
+14. UTI History
+
+Create a single binary UTI history variable.
+
+df = pd.read_csv("kesken1.tsv", sep="\t")
+
+df["UTI_history"] = np.where(
+    (df.get("raw_metadata_UTIs", 0) > 0) |
+    (df.get("raw_metadata_diagnosed_utis", 0) == 1) |
+    (df.get("raw_metadata_ecoli_utis", 0) == 1) |
+    (df.get("raw_metadata_history_of_recurrent_uti") == "Recurrent UTIs") |
+    (df.get("raw_metadata_UrineInfection") == 1),
+    "Yes", "No"
+)
+
+df = df.drop(columns=[
+    "raw_metadata_UTIs",
+    "raw_metadata_diagnosed_utis",
+    "raw_metadata_ecoli_utis",
+    "raw_metadata_history_of_recurrent_uti",
+    "raw_metadata_UrineInfection",
+])
+
+15. Age Harmonization
+df = df.drop(columns=["age_days"])
+
+def range_to_midpoint(x):
+    nums = [float(n) for n in re.findall(r"\d+\.?\d*", str(x))]
+    return np.mean(nums) if len(nums) == 2 else (nums[0] if nums else np.nan)
+
+def combine_age(row):
+    if pd.notna(row["age_years"]):
+        return row["age_years"]
+    if pd.notna(row["age_range"]):
+        return f"{row['age_range']} ({range_to_midpoint(row['age_range']):.0f})"
+    return np.nan
+
+df["age_years"] = df.apply(combine_age, axis=1)
+df = df.drop(columns=["age_range"])
+
+16. Final Antibiotic Harmonization
+
+Infer antibiotic exposure from multiple metadata sources.
+
+df.loc[df["Drug_antibiotic_last3y"] == "2 months", "Antibiotics_used"] = "Yes"
+df.loc[df["days_since_antibiotics"].notna(), "Antibiotics_used"] = "Yes"
+df.loc[df["range_days_since_antibiotics"].notna(), "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_Antibiotics_Last3months"].str.contains("Yes", na=False), "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_Antibiotics_current"] == "Y", "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_Antibiotics_past_3_months"] == "Y", "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_antibiotics_at_birth"].str.upper() == "YES", "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_antibiotics_with_admission_days"].gt(0), "Antibiotics_used"] = "Yes"
+df.loc[df["raw_metadata_total_antibiotic_days"].gt(0), "Antibiotics_used"] = "Yes"
+
+
+Remove intermediate antibiotic columns:
+
+df = df.drop(columns=[
+    "Drug_antibiotic_last3y",
+    "days_since_antibiotics",
+    "range_days_since_antibiotics",
+    "raw_metadata_Antibiotics_Last3months",
+    "raw_metadata_Antibiotics_current",
+    "raw_metadata_Antibiotics_past_3_months",
+    "raw_metadata_antibiotic_use",
+    "raw_metadata_antibiotics_at_birth",
+    "raw_metadata_antibiotics_with_admission_days",
+    "raw_metadata_total_antibiotic_days",
+])
+
+17. Final Export
+df.to_csv("kesken2.tsv", sep="\t", index=False)
 
 ---
 
