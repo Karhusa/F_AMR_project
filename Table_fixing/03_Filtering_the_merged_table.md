@@ -1,3 +1,211 @@
+# Metadata Cleaning Pipeline
+
+## Overview
+
+This document describes a step‑by‑step pipeline to:
+
+* Load and clean merged SRA metadata
+* Remove empty / uninformative columns
+* Harmonise BMI, age, disease, infection, UTI, and antibiotic metadata
+* Produce progressively cleaner TSV outputs (`kesken1.tsv`, `kesken2.tsv`)
+
+---
+
+## 1. Load Data
+
+```python
+import pandas as pd
+import numpy as np
+import re
+
+df = pd.read_csv("cleaned_merged_final.tsv", sep="\t")
+```
+
+---
+
+## 2. Remove Columns With No Values
+
+```python
+df = df.dropna(axis=1, how='all')
+print(f" Shape: {df.shape}")
+# Shape: (24605, 195)
+```
+
+---
+
+## 3. Drop Columns Containing Only NaN or "No"
+
+```python
+def drop_nan_no_columns(df):
+    cols_to_drop = []
+    for col in df.columns:
+        unique_vals = set(df[col].dropna().astype(str).str.strip())
+        if len(unique_vals) == 0:
+            cols_to_drop.append(col)
+        elif unique_vals == {"No"}:
+            cols_to_drop.append(col)
+    df = df.drop(columns=cols_to_drop)
+    return df, cols_to_drop
+
+
+df, dropped = drop_nan_no_columns(df)
+print("Dropped columns:", dropped)
+print(f" Shape: {df.shape}")
+# Shape: (24605, 154)
+```
+
+---
+
+## 4. BMI Cleaning and Categorization
+
+### 4.1 Inspect BMI Columns
+
+```python
+bmi_cols = df.columns[df.columns.str.contains("bmi", case=False)]
+
+for col in bmi_cols:
+    print(f"{col}: {df[col].unique()}")
+```
+
+---
+
+### 4.2 Convert BMI to Numeric and Create Categories
+
+```python
+df["bmi"] = pd.to_numeric(df["bmi"], errors="coerce")
+
+bins = [0, 18.5, 25, 30, float("inf")]
+labels = [
+    "Underweight (<18.5)",
+    "Normal (18.5-25)",
+    "Overweight (25-30)",
+    "Obese (>30)"
+]
+
+df["BMI_range_new"] = pd.cut(df["bmi"], bins=bins, labels=labels)
+```
+
+---
+
+### 4.3 Override Using Text-Based `bmi_range`
+
+```python
+bmi_range_map = {
+    "16-20": "Underweight (<18.5)",
+    "18.5-28": "Normal (18.5-25)",
+    "20-25": "Normal (18.5-25)",
+    "25-30": "Overweight (25-30)",
+    "over 25": "Overweight (25-30)",
+}
+
+mask = df["bmi_range"].notna()
+df.loc[mask, "BMI_range_new"] = df.loc[mask, "bmi_range"].map(bmi_range_map)
+```
+
+---
+
+### 4.4 Add Additional Categories
+
+```python
+if not pd.api.types.is_categorical_dtype(df["BMI_range_new"]):
+    df["BMI_range_new"] = df["BMI_range_new"].astype("category")
+
+new_categories = ["Obese (>30)", "Normal/Overweight (<30)"]
+existing = df["BMI_range_new"].cat.categories
+
+to_add = [cat for cat in new_categories if cat not in existing]
+
+df["BMI_range_new"] = df["BMI_range_new"].cat.add_categories(to_add)
+```
+
+---
+
+### 4.5 Override Using `BMI_range`
+
+```python
+BMI_range_map = {">30": "Obese (>30)", "<30": "Normal/Overweight (<30)"}
+
+mask2 = df["BMI_range"].notna()
+df.loc[mask2, "BMI_range_new"] = df.loc[mask2, "BMI_range"].map(BMI_range_map)
+```
+
+---
+
+### 4.6 Review and Cleanup
+
+```python
+print(df["BMI_range_new"].value_counts(dropna=False))
+print(df[["bmi", "bmi_range", "BMI_range", "BMI_range_new"]].head(10))
+
+df = df.drop(columns=bmi_cols)
+```
+
+---
+
+## 5. Drop Additional Unnecessary Metadata Columns
+
+```python
+columns_to_drop = [
+    "raw_metadata_BloodInfection",
+    "raw_metadata_age-block",
+    "raw_metadata_age_of_onset",
+    "raw_metadata_body_fat_percentage",
+    "raw_metadata_height_for_age_z_score",
+    "raw_metadata_maternal_age_at_delivery_years",
+    "raw_metadata_treatment_batch",
+    "raw_metadata_PostmenstrualAgeDays",
+    "raw_metadata_MaternalAgeYears",
+    "raw_metadata_Metagenomic_sequencing________(Y_or_N)",
+    "raw_metadata_age_group_16S",
+    "raw_metadata_storageprotocol",
+    "village",
+    "raw_metadata_AgeDischargedDays",
+    "raw_metadata_Age_at_collection",
+    "raw_metadata_Age_at_diagnosis",
+    "raw_metadata_Condition",
+    "raw_metadata_Drug_insulin",
+    "raw_metadata_Drug_statins",
+    "raw_metadata_Treatment_duration_(months)",
+    "raw_metadata_age_at_diagnosis",
+    "raw_metadata_diagnosis_date",
+    "raw_metadata_disease_duration",
+    "raw_metadata_disease_duration_year",
+    "raw_metadata_disease_duration_years",
+    "raw_metadata_disease_extent",
+    "raw_metadata_housing_condition",
+    "raw_metadata_treatment_group",
+    "raw_metadata_treatment_effect",
+    "raw_metadata_treatment_batch",
+    "raw_metadata_response_to_treatment",
+    "raw_metadata_mental_illness_diagnosis",
+    "raw_metadata_Blood_urea_nitrogen",
+    "raw_metadata_Drug_propranolol",
+    "raw_metadata_NecrotizingEnterocolitis",
+    "raw_metadata_Treatment_(Y_or_N)",
+    "raw_metadata_previous_bilharzia_treatment",
+    "raw_metadata_Anti_inflammatory_drugs",
+]
+
+df = df.drop(columns=columns_to_drop)
+print(f" Shape: {df.shape}")
+```
+
+---
+
+
+---
+
+## Outputs
+
+* `kesken1.tsv`
+* `kesken2.tsv`
+
+---
+
+**End of readable version**
+
+
+
 Next this: ## 1. Load Data
 import pandas as pd
 import numpy as np
