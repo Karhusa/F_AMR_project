@@ -1,50 +1,27 @@
-# 1. Metadata curation workflow with audit trail
+# 1. Metadata curation workflow 
 
 This document describes the metadata processing workflow. 
-Explanatory text and audit tables are added to document why specific decisions were made. The audit tables serve as a structured record of variable-level decisions and can be updated as needed during analysis.
 
-Audit table:
-* what operation was performed
-* which columns or rows were affected
-* why the decision was made
-* how many entries were kept or removed
+---
 
-## 2. Download the file
+# 1. Download the file
 
-```{r}
+```python
 import numpy as np
 import pandas as pd
 import re
 
 df = pd.read_csv("kesken2.tsv", sep="\t")
 ```
-## 2.2 Initialise audit table
 
-```python
-import pandas as pd
-
-# Initialise audit table
-audit_log = []
-
-def log_audit(step, action, target, reason, before=None, after=None):
-    audit_log.append({
-        "step": step,
-        "action": action,
-        "target": target,
-        "reason": reason,
-        "n_before": before,
-        "n_after": after
-    })
-```
-
-## 2. Size and names of the columns
+## 3. Size and names of the columns
 ```
 print(df.shape)
-(24605, 47)
+# (24605, 49)
 
 print(df.columns.tolist())
 
-['acc', 'age_category', 'age_years', 'avgspotlen', 'bioproject', 'biosample', 'collection_date_sam', 'environmental_package', 'geo_loc_name_country_calc', 'geo_loc_name_country_continent_calc', 'instrument', 'location_resolution', 'mbases', 'platform', 'raw_metadata_Asthma', 'raw_metadata_Carbapenemase_bla_Gene', 'raw_metadata_Colitis', 'raw_metadata_Crohns_disease', 'raw_metadata_Drug_antivirus', 'raw_metadata_GI_infection', 'raw_metadata_Intestinal_disease', 'raw_metadata_MaternalAntimicrobials', 'raw_metadata_TotalAntimicrobialsDays', 'raw_metadata_age_group', 'raw_metadata_diseases', 'raw_metadata_host_disease', 'raw_metadata_multi_drug_resistant_organism_infection', 'raw_metadata_subject_disease_status_full', 'sex', 'spire_sample_name', 'subject_disease_status', 'subject_disease_status_full', 'BMI_range_new', 'antibiotics_list', 'antibiotic_1', 'antibiotic_2', 'antibiotic_3', 'antibiotic_4', 'antibiotic_5', 'antibiotic_6', 'antibiotic_7', 'antibiotic_8', 'antibiotic_9', 'name_of_antibiotic', 'Antibiotics_used', 'IBD', 'UTI_history']
+#['acc', 'age_category', 'age_days', 'age_range', 'age_years', 'avgspotlen', 'bioproject', 'biosample', 'collection_date_sam', 'environmental_package', 'geo_loc_name_country_calc', #'geo_loc_name_country_continent_calc', 'instrument', 'location_resolution', 'mbases', 'platform', 'raw_metadata_Asthma', 'raw_metadata_Carbapenemase_bla_Gene', 'raw_metadata_Colitis', #'raw_metadata_Crohns_disease', 'raw_metadata_Drug_antivirus', 'raw_metadata_GI_cancer_past_3_months', 'raw_metadata_GI_infection', 'raw_metadata_Intestinal_disease', #'raw_metadata_MaternalAntimicrobials', 'raw_metadata_TotalAntimicrobialsDays', 'raw_metadata_age_group', 'raw_metadata_diseases', 'raw_metadata_host_disease', #'raw_metadata_multi_drug_resistant_organism_infection', 'raw_metadata_subject_disease_status_full', 'sex', 'spire_sample_name', 'subject_disease_status', 'subject_disease_status_full', #'antibiotics_list', 'antibiotic_1', 'antibiotic_2', 'antibiotic_3', 'antibiotic_4', 'antibiotic_5', 'antibiotic_6', 'antibiotic_7', 'antibiotic_8', 'antibiotic_9', 'name_of_antibiotic', #'Antibiotics_used', 'IBD', 'UTI_history']
 
 ```
 
@@ -238,7 +215,7 @@ def add_label(existing, new):
         return existing
     return f"{existing};{new}"
 
-for keyword in cancer_keywords:
+for keyword in Cancer_keywords:
     mask = df["subject_disease_status_full"].astype(str).str.contains(keyword, case=False, na=False)
     df.loc[mask, "Cancers_and_adenomas"] = df.loc[mask, "Cancers_and_adenomas"].apply(add_label, new=keyword)
 
@@ -521,11 +498,6 @@ df.loc[
 ] = "No"
 
 df["Multidrug_resistant_infection"] = df["Multidrug_resistant_infection"].astype("category")
-#Multidrug_resistant_infection
-#NaN    24479
-#Yes       88
-#No        38
-#Name: count, dtype: int64
 
 df = df.drop(columns=["raw_metadata_multi_drug_resistant_organism_infection"])
 
@@ -566,10 +538,7 @@ subset = df[df["raw_metadata_MaternalAntimicrobials"].notna() | df["raw_metadata
 unique_projects = subset["bioproject"].unique()
 
 print(unique_projects)
-['PRJNA489090']
-
-print("Number of unique bioprojects:", len(unique_projects))
-Number of unique bioprojects: 1
+#['PRJNA489090']
 
 ## -> Both columns (raw_metadata_MaternalAntimicrobials and raw_metadata_TotalAntimicrobialsDays) are from the same study so most likely maternal antiviral related.
 
@@ -579,28 +548,378 @@ df = df.drop(columns=["raw_metadata_TotalAntimicrobialsDays"])
 
 df.to_csv("kesken3.tsv", sep="\t", index=False)
 ```
-## 13. raw_metadata_age_group column
+---
+
+# 13. Age columns
+
+## 13.1. Inspect age columns
+```python
+
+df = pd.read_csv("kesken3.tsv", sep="\t")
+
+age_cols = [col for col in df.columns if "age" in col.lower()]
+for col in age_cols:
+    print(f"{col}: {df[col].unique()}")
+#['age_category', 'age_days', 'age_range', 'age_years', 'environmental_package', 'raw_metadata_age_group']
 ```
-["raw_metadata_age_group"].value_counts(dropna=False)
+# what we need to focus on
+age_range:
 
-raw_metadata_age_group
-NaN          24600
-adult            3
-schoolage        2
-Name: count, dtype: int64
+[nan '50 to 64' 'over 65' 'adult' 'child' 'baby' '52 to 81' 'over 40'
+'below 0.0833' '18 to 70' 'below 0.633' '18 to 69' '18 to 40' '40 to 82'
+'over 60' '1 to 13' '0.5 to 0.9167' '2 to 5' 'below 12' '20 to 75'
+'28 to 35' '55 to 60' '60 to 65' '50 to 55' '80 to 85' '75 to 80'
+'70 to 75' '45 to 50' '35 to 40' '40 to 45' '65 to 70' '85 to 90'
+'90 to 95' '15 to 20' '25 to 30' '29 to 62' '28 to 62' '29 to 59'
+'29 to 56' 'over 5' '3 to 63' '13 to 60' '21 to 50' '13 to 41' '49 to 50'
+'35 to 41' '42 to 49' '22 to 35' '42 to 58' '22 to 30' '40 to 58'
+'30 to 74' '24 to 40' '24 to 52' '52 to 74' '24 to 33' '20 to 52'
+'25 to 52' '33 to 39' '21 to 29' '20 to 21' '25 to 48' '29 to 44'
+'39 to 48' '26 to 29' '48 to 77' '32 to 37' '27 to 32' '33 to 48'
+'27 to 36' '33 to 38' '34 to 36' '26 to 27' '25 to 38' '28 to 34'
+'26 to 36' '27 to 45' '28 to 51' '28 to 40' '36 to 48' '19 to 46'
+'38 to 51' '40 to 48' '19 to 59' '31 to 34' '38 to 48' '34 to 48'
+'25 to 75' '36 to 59' '34 to 63' '26 to 46' '21 to 48' '46 to 54'
+'38 to 42' '34 to 35' '60 to 75' '42 to 65' '32 to 70' '30 to 42'
+'28 to 50' '23 to 35' '36 to 55' '30 to 36' '36 to 70' '32 to 60'
+'48 to 75' '7 to 20' '20 to 56' '25 to 65' '40 to 72' 'over 21'
+'0.0833 to 0.166' '0.166 to 0.249' '0.249 to 0.332' '0.332 to 0.415'
+'0.415 to 0.498' '0.0833 to 0.5' '18 to 80' '5 to 17' '13 to 17'
+'51 to 70' 'over 70' '20 to 36' 'below 0.0821918']
 
-mask = df["raw_metadata_age_group"].notna()
 
-df.loc[mask, "age_category"] = df.loc[mask, "raw_metadata_age_group"].replace({
+## 13.2 Normalize age_range values
+
+```python
+
+def normalize_age_range(val):
+    if pd.isna(val):
+        return None # Nan -> none
+    val = str(val).lower().strip() # (val) number -> string, lower() ->lowercase letters, strip() removes whitespace
+    val = re.sub(r"\s+", " ", val)  # collapse all whitespace
+    return val
+```
+
+## 13.3 Map age_range
+
+```python
+
+AGE_RANGE_MAP = {
+    # --- Text categories ---
+    "baby": "Infant",
+    "child": "Child",
+
+    # --- Infant numeric ranges ---
+    "0.5 to 0.9167": "Infant",
+    "0.0833 to 0.166": "Infant",
+    "0.166 to 0.249": "Infant",
+    "0.249 to 0.332": "Infant",
+    "0.332 to 0.415": "Infant",
+    "0.415 to 0.498": "Infant",
+    "0.0833 to 0.5": "Infant",
+    "below 0.0821918": "Infant",
+
+    # --- Teenage ---
+    "13 to 17": "Teenage",
+    "15 to 20": "Teenage",
+
+    # --- Young adult ---
+    "20 to 21": "Young adult",
+    "21 to 29": "Young adult",
+    "22 to 30": "Young adult",
+    "22 to 35": "Young adult",
+    "23 to 35": "Young adult",
+    "24 to 33": "Young adult",
+    "25 to 30": "Young adult",
+    "26 to 27": "Young adult",
+    "26 to 29": "Young adult",
+    "27 to 32": "Young adult",
+    "28 to 34": "Young adult",
+    "28 to 35": "Young adult",
+    "31 to 34": "Young adult",
+    "34 to 35": "Young adult",
+
+    # --- Middle-Age Adult ---
+    "35 to 40": "Middle-Age Adult",
+    "35 to 41": "Middle-Age Adult",
+    "36 to 48": "Middle-Age Adult",
+    "36 to 55": "Middle-Age Adult",
+    "36 to 59": "Middle-Age Adult",
+    "38 to 42": "Middle-Age Adult",
+    "38 to 48": "Middle-Age Adult",
+    "39 to 48": "Middle-Age Adult",
+    "40 to 45": "Middle-Age Adult",
+    "40 to 48": "Middle-Age Adult",
+    "40 to 58": "Middle-Age Adult",
+    "42 to 49": "Middle-Age Adult",
+    "42 to 58": "Middle-Age Adult",
+    "42 to 65": "Middle-Age Adult",
+    "45 to 50": "Middle-Age Adult",
+    "46 to 54": "Middle-Age Adult",
+    "49 to 50": "Middle-Age Adult",
+    "50 to 55": "Middle-Age Adult",
+    "50 to 64": "Middle-Age Adult",
+    "55 to 60": "Middle-Age Adult",
+    "60 to 65": "Middle-Age Adult",
+
+    # --- Older Adult ---
+    "65 to 70": "Older Adult",
+    "70 to 75": "Older Adult",
+    "75 to 80": "Older Adult",
+    "over 65": "Older Adult",
+
+    # --- Oldest Adult ---
+    "80 to 85": "Oldest Adult",
+    "85 to 90": "Oldest Adult",
+    "90 to 95": "Oldest Adult",
+}
+```
+## 13.4 Categorize from age_range
+```python
+
+def age_category_from_range(val):
+    key = normalize_age_range(val)
+    return AGE_RANGE_MAP.get(key)
+```
+## 13.5 Categorize from age_years
+```python
+
+def age_category_from_years(age):
+    if pd.isna(age):
+        return None
+    if age < 1:
+        return "Infant"
+    elif age < 3:
+        return "Toddler"
+    elif age < 12:
+        return "Child"
+    elif age < 20:
+        return "Teenage"
+    elif age < 35:
+        return "Young adult"
+    elif age < 65:
+        return "Middle-Age Adult"
+    elif age < 80:
+        return "Older Adult"
+    else:
+        return "Oldest Adult"
+
+```
+
+## 13.6 Assign final age_category
+
+```python 
+
+def assign_age_category(row):
+    # Prefer numeric age
+    cat_years = age_category_from_years(row["age_years"])
+    if cat_years is not None:
+        return cat_years
+    cat_range = age_category_from_range(row["age_range"])
+    if cat_range is not None:
+        return cat_range
+    return "Unknown"
+
+```
+## 13.7 Apply dataframe
+
+```python
+df["precise_age_category"] = df.apply(assign_age_category, axis=1)
+
+```
+## 13.8 QC
+```python
+# Distribution
+df["precise_age_category"].value_counts(dropna=False)
+
+# Unmapped ranges
+(df.loc[df["age_category"] == "Unknown", "age_range"].value_counts())
+```
+precise_age_category
+* Unknown             10648
+* Middle-Age Adult     5666
+* Young adult          2583
+* Older Adult          1941
+* Infant               1406
+* Teenage              1127
+* Child                 837
+* Oldest Adult          212
+* Toddler               185
+
+---
+
+# 14 Lets make even simplier age category column where we can add more values
+
+# 14.1 Helper: normalize text values
+```python
+def normalize(val):
+    if pd.isna(val):
+        return None
+    return re.sub(r"\s+", " ", str(val).lower().strip())
+```
+# 14.2 SIMPLE mapping
+From text-like columns
+
+```python
+TEXT_TO_SIMPLE = {
+    "baby": "Infant",
+    "infant": "Infant",
+    "child": "Child",
+    "schoolage": "Child",
+    "teen": "Child",
+    "adolescent": "Child",
     "adult": "Adult",
-    "schoolage": "Child"
-})
+}
+```
+14.3. From age_range
+
+```python
+AGE_RANGE_TO_SIMPLE = {
+    # Infant
+    "below 0.0821918": "Infant",
+    "below 0.0833": "Infant",
+    "below 0.633": "Infant",
+    "0.0833 to 0.166": "Infant",
+    "0.166 to 0.249": "Infant",
+    "0.249 to 0.332": "Infant",
+    "0.332 to 0.415": "Infant",
+    "0.415 to 0.498": "Infant",
+    "0.0833 to 0.5": "Infant",
+    "0.5 to 0.9167": "Infant",
+
+    # Child
+    "1 to 13": "Child",
+    "2 to 5": "Child",
+    "5 to 17": "Child",
+    "13 to 17": "Child",
+
+    # Adult (everything else explicitly marked adult)
+    "adult": "Adult",
+    "over 21": "Adult",
+    "over 40": "Adult",
+    "over 60": "Adult",
+    "over 65": "Adult",
+    "over 70": "Adult",
+    "18 to 40": "Adult",
+    "18 to 69": "Adult",
+    "18 to 70": "Adult",
+    "18 to 80": "Adult",
+}
+
+```
+## 14.3 Helper function 
+Based on the proprity of
+* age_years
+* age_days
+* age_range
+* age_category
+* raw_metadata_age_group
+
+```python
+
+def resolve_simple_age(row):
+    # age_years (most precise)
+    if pd.notna(row["age_years"]):
+        age = row["age_years"]
+        if age < 1:
+            return "Infant"
+        elif age < 18:
+            return "Child"
+        else:
+            return "Adult"
+    # age_days
+    if pd.notna(row["age_days"]):
+        age_years = row["age_days"] / 365.25
+        if age_years < 1:
+            return "Infant"
+        elif age_years < 18:
+            return "Child"
+        else:
+            return "Adult"
+    # age_range
+    ar = normalize(row["age_range"])
+    if ar in AGE_RANGE_TO_SIMPLE:
+        return AGE_RANGE_TO_SIMPLE[ar]
+    # age_category
+    ac = normalize(row["age_category"])
+    if ac in TEXT_TO_SIMPLE:
+        return TEXT_TO_SIMPLE[ac]
+    # raw_metadata_age_group
+    rmag = normalize(row["raw_metadata_age_group"])
+    if rmag in TEXT_TO_SIMPLE:
+        return TEXT_TO_SIMPLE[rmag]
+    return "Unknown"
+```
+Apply to dataframe
+
+```python
+df["imprecise_age_category"] = df.apply(resolve_simple_age, axis=1)
+```
+
+
+
+
+
+
+
+
+## 16.9 raw_metadata_age_group column
+```
+cols_to_drop = [
+    "age_range",
+    "age_days",
+    "raw_metadata_age_group",
+    "age_category"  # original if it exists
+]
+
+df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 df.to_csv("kesken4.tsv", sep="\t", index=False)
 
 
 df = df.drop(columns=["raw_metadata_age_group"])
 ```
+
+cols_to_drop = [
+    "age_range",
+    "age_days",
+    "raw_metadata_age_group",
+    "age_category"  # original if it exists
+]
+
+df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
+```
+
+
+
+
+
+
 ## Shape and Save
 
 ```
