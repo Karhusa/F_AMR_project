@@ -1,7 +1,7 @@
 # Workflow: Matching TSE Samples to Metalog / SRA Data
 
 Input files:
-* TSE-object from study (Mahkameh el al, 2025[https://www.nature.com/articles/s41522-025-00715-9])
+* TSE-object from study (Mahkameh el al, 2025 [https://www.nature.com/articles/s41522-025-00715-9])
 * Metalog Samples from (Metalog [https://metalog.embl.de/explore/human])
 * SRA_metadata_with_biosample.txt
 
