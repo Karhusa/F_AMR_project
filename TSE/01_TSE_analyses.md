@@ -76,8 +76,9 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
 
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
-```
+
 
 ```
