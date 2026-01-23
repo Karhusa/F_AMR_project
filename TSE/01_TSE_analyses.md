@@ -77,21 +77,7 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-
-
-library(ggplot2)
-
-ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = sex)) +
-  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
-  labs(
-    x = "Age Category",
-    y = "Log10 ARG Load",
-    title = "ARG Load by Age Category and Sex",
-    fill = "Sex"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
 ```
 
 ```
