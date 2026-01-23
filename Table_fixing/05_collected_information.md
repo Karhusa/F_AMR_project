@@ -43,28 +43,6 @@ age_abx_counts2
 
 ```
 
-Results: 
-
-* Antibiotics_used         No  Yes
-* precise_age_category            
-* Child                   789   48
-* Infant                 1235  171
-* Middle-Age Adult       5602   64
-* Older Adult            1799  142
-* Oldest Adult            185   27
-* Teenage                1127    0
-* Toddler                 160   25
-* Unknown               10315  333
-* Young adult            2399  184
-
-* Antibiotics_used           No  Yes
-* imprecise_age_category            
-* Adult                   16253  417
-* Child                    1897   73
-* Infant                   1408  504
-Unknown                  4053    0
-
-
 ---
 
 ## 5. Age + Sex + antibiotics
@@ -101,7 +79,7 @@ Results:
 
 ---
 
-## 5. AGE + SEX + UTI + ABX 
+## 5. Age + Sex + Uti + Abx
 
 ```python
 age_sex_uti_abx_counts = (
@@ -112,37 +90,6 @@ age_sex_uti_abx_counts = (
 )
 age_sex_uti_abx_counts
 ```
-Results:
-* Antibiotics_used                           No  Yes
-* precise_age_category sex    UTI_history           
-* Child                female No            291   23
-*                     male   No            358   25
-* Infant               female No            268   62
-*                            Yes             2   19
-*                     male   No            286   26
-*                            Yes            10   26
-* Middle-Age Adult     female No           1572   44
-*                            Yes            48    0
-*                      male   No           1601   20
-*                             Yes            21    0
-* Older Adult          female No            671   69
-*                             Yes            28    0
-*                      male   No            896   73
-*                             Yes            29    0
-* Oldest Adult         female No             82    9
-*                      male   No            100   18
-* Teenage              female No            531    0
-*                             Yes            12    0
-*                      male   No            579    0
-* Toddler              female No             39    4
-*                             Yes             1    2
-*                      male   No             49   13
-*                             Yes             3    6
-* Unknown              female No           2124  196
-*                      male   No           1938  137
-* Young adult          female No           1192   94
-*                             Yes            43    0
-*                     male   No           1045   90
   
 ---
 
@@ -165,12 +112,9 @@ age_sex_bmi_abx.reset_index().to_csv(
 )
 
 ```
-## Results
-
-
 ---
 
-## 7. AGE + SEX + GI + ABX
+## 7. Age + Sex + Gastrointestinal disease + Abx
 
 ```python
 age_sex_GI_abx = (
@@ -192,7 +136,7 @@ age_sex_GI_abx.reset_index().to_csv(
 
 ---
 
-## 8. AGE + SEX + CA + ABX
+## 8. Age + Sex + Cancer and adenomas + Abx
 
 ```python
 Cancers_and_adenomas
@@ -243,10 +187,9 @@ for c in categorical_cols:
 print(df.index.is_unique)          # True
 print(df.dtypes)                   # Check types
 print(df.isna().sum().sort_values(ascending=False).head(10))  # Missing values
-´´´
-
 ```
-5. Lets modify the antibiotic columns:
+
+## 10. Lets modify the antibiotic columns:
 
 ```
 
