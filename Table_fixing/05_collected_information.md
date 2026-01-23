@@ -187,6 +187,11 @@ for c in categorical_cols:
 print(df.index.is_unique)          # True
 print(df.dtypes)                   # Check types
 print(df.isna().sum().sort_values(ascending=False).head(10))  # Missing values
+
+5. Drop column subject_disease_status_full
+
+df = df.drop(columns=["subject_disease_status_full"])
+
 ```
 
 ## 10. Lets modify the antibiotic columns:
@@ -206,7 +211,7 @@ for col in antibiotic_cols:
 
 df = df.drop(columns=antibiotic_cols, errors='ignore')
 
-df.to_csv("olData_TSE.tsv", sep="\t", index=True)
+df.to_csv("colData_TSE.tsv", sep="\t", index=True)
 
 ```
 
