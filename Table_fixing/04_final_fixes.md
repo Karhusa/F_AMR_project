@@ -856,13 +856,6 @@ Apply to dataframe
 df["imprecise_age_category"] = df.apply(resolve_simple_age, axis=1)
 ```
 
-
-
-
-
-
-
-
 ## 16.9 raw_metadata_age_group column
 ```
 cols_to_drop = [
