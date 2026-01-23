@@ -12,6 +12,11 @@ library(S4Vectors)
 tse_path <- "/scratch/project_2008149/USER_WORKSPACES/karhula/DATA/TSE.rds"
 TSE <- readRDS(tse_path)
 
+# convert age_category to character to avoid factor warnings
+if ("age_category" %in% colnames(colData(TSE))) {
+  colData(TSE)$age_category <- as.character(colData(TSE)$age_category)
+}
+
 # Load new colData TSV
 coldata_path <- "/scratch/project_2008149/USER_WORKSPACES/karhula/DATA/colData_TSE.tsv"
 colData_new <- read.delim(coldata_path, header = TRUE, stringsAsFactors = FALSE)
@@ -42,8 +47,11 @@ saveRDS(TSE, tse_path)
 ```
 Save as a TSV
 ```
+
+coldata_df <- as.data.frame(colData(TSE))
+
 write.table(
-  colData_df,
+  coldata_df,
   file = "/scratch/project_2008149/USER_WORKSPACES/karhula/DATA/colData_TSE_updated.tsv",
   sep = "\t",
   quote = FALSE,
