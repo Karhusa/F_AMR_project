@@ -902,7 +902,6 @@ cols_to_drop = [
     "age_range",
     "age_days",
     "raw_metadata_age_group",
-    "age_category"  # original if it exists
 ]
 
 df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
