@@ -191,7 +191,6 @@ print(df.isna().sum().sort_values(ascending=False).head(10))  # Missing values
 5. Drop column subject_disease_status_full
 
 df = df.drop(columns=["subject_disease_status_full"])
-
 ```
 
 ## 10. Lets modify the antibiotic columns:
