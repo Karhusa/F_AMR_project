@@ -5,7 +5,7 @@ ARG Load Analysis by Sex
 library(SummarizedExperiment)
 library(dplyr)
 library(ggplot2)
-
+library(tidyr)
 ```
 Load TSE
 ```r
@@ -37,10 +37,6 @@ colData_subset <- colData_df %>%
 2. AGE
 
 ```r
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-
 # Clean the sex column
 colData_subset$sex <- as.character(colData_subset$sex) 
 colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
