@@ -470,7 +470,7 @@ df.loc[df["raw_metadata_antibiotics_with_admission_days"].gt(0), "Antibiotics_us
 df.loc[df["raw_metadata_total_antibiotic_days"].gt(0), "Antibiotics_used"] = "Yes"
 
 
-Remove intermediate antibiotic columns:
+# Remove intermediate antibiotic columns:
 
 df = df.drop(columns=[
     "Drug_antibiotic_last3y",
