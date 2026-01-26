@@ -1,7 +1,6 @@
+Update the original TSE.rds with new coldata table
 
-RSTUDIO
-
-1. Load the TSE object
+## 1. Load the TSE object
 
 ```r
 
@@ -45,9 +44,8 @@ for (colname in cols_to_update) {
 saveRDS(TSE, tse_path)
 
 ```
-Save as a TSV
+## 2. Save the new colData as a TSV file
 ```
-
 coldata_df <- as.data.frame(colData(TSE))
 
 write.table(
@@ -57,7 +55,6 @@ write.table(
   quote = FALSE,
   row.names = FALSE
 )
-
 ```
 
 
