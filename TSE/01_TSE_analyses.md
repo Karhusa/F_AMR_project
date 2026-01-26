@@ -132,9 +132,6 @@ sum(!is.na(colData_subset$BMI_range_new))
 
 
 ```r
-# Clean the sex column
-colData_subset$sex <- as.character(colData_subset$sex) 
-colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
 colData_subset$sex <- factor(colData_subset$sex, levels = c("female", "male"))  # make it a factor
 
 # Compute counts per age category × sex
@@ -146,19 +143,23 @@ counts <- colData_subset %>%
     .groups = "drop"
   )
 
-# Plot with matching colors for boxes and N labels
+age_levels <- c(
+  "Infant", "Toddler", "Child", "Teenage", 
+  "Young Adult", "Middle-age Adult", "Older Adult", "Oldest Adult"
+)
+
+colData_subset <- colData_subset %>%
+  mutate(precise_age_category = factor(precise_age_category, levels = age_levels))
+
 ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = sex)) +
-  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8), color = "black") +
-  scale_fill_manual(values = c("female" = "#FF9999", "male" = "#9999FF", "NA" = "grey70"),
-                    labels = c("Female", "Male", "Unknown")) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("female" = "#FF9999", "male" = "#9999FF")) +
   geom_text(
     data = counts,
-    aes(x = precise_age_category, y = y_pos, label = paste0("N=", N), color = sex),
+    aes(x = precise_age_category, y = y_pos, label = paste0("N=", N)),
     position = position_dodge(width = 0.8),
-    size = 3,
-    show.legend = FALSE  # don't add a separate legend for text
+    size = 3
   ) +
-  scale_color_manual(values = c("female" = "#FF9999", "male" = "#9999FF", "NA" = "grey70")) +
   labs(
     x = "Age Category",
     y = "Log10 ARG Load",
@@ -167,6 +168,7 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
