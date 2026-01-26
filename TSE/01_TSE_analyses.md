@@ -77,4 +77,7 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
 
 
+# N values can be removed. I left N values there so that it would be easier to interpret results.
+
+
 ```
