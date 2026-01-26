@@ -129,7 +129,7 @@ sum(!is.na(colData_subset$BMI_range_new))
 
 ```
 
-
+## 5. Boxplot of ARG Load by Category and Sex
 
 ```r
 colData_subset$sex <- factor(colData_subset$sex, levels = c("female", "male"))  # make it a factor
@@ -145,7 +145,7 @@ counts <- colData_subset %>%
 
 age_levels <- c(
   "Infant", "Toddler", "Child", "Teenage", 
-  "Young Adult", "Middle-age Adult", "Older Adult", "Oldest Adult"
+  "Young adult", "Middle-Age Adult", "Older Adult", "Oldest Adult"
 )
 
 colData_subset <- colData_subset %>%
@@ -169,6 +169,13 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+```
+## 5.1 Save image
+
+```
+setwd("/scratch/project_2008149/USER_WORKSPACES/karhula/DATA")
+
+ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
 
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
