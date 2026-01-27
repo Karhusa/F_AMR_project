@@ -41,24 +41,25 @@ colData_subset <- colData_df %>%
 
 ### 4.1 Precise_age_category
 ```
-table(colData_subset$precise_age_category)
-
- #          Child           Infant Middle-Age Adult      Older Adult     Oldest Adult 
- #            837             1406             5666             1941              212 
- #        Teenage          Toddler          Unknown      Young adult 
- #           1127              185            10648             2583 
-
 colData_subset$precise_age_category[colData_subset$precise_age_category == "Unknown"] <- NA
 
 table(colData_subset$precise_age_category)
 
-#           Child           Infant Middle-Age Adult      Older Adult     Oldest Adult 
-#             837             1406             5666             1941              212 
-#         Teenage          Toddler      Young adult 
-#            1127              185             2583 
 sum(!is.na(colData_subset$precise_age_category))
-# 13957
 ```
+Results:
+
+* Infant 1406
+* Toddler 185
+* Child 837
+* Teeanage 1127
+* Young Adult 2583
+* Middle-Age Adult 5666
+* Older Adult 1941
+* Oldest adult 212
+
+* All together 13957
+
 
 ### 4.2 age_years
 
@@ -84,50 +85,43 @@ colData_subset$age_years <- round(colData_subset$age_years)
 #   3    1    2   10    4    4    1    3 
 
 sum(!is.na(colData_subset$age_years))
-#11189
-
 ```
+* Ages 0 to 109, all ages presented
+  
+* All together 11189 
+
 ### 4.3 sex 
 
 ```r
-table(colData_subset$sex)
-#       female   male 
-#  9830   7426   7349
-
 colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
 
 table(colData_subset$sex)
-#female   male 
-#  7426   7349 
 
 sum(!is.na(colData_subset$sex))
-# 14775
 ```
+Results:
+* Female 7426
+* Male 7249
+* All together 14775
+
 
 ### 4.4  BMI_range_new
-```
-table(colData_subset$BMI_range_new)
-
-                               Normal (18.5-25) Normal/Overweight (<30)             Obese (>30) 
-                  18079                    3294                      56                    1231 
-     Overweight (25-30)     Underweight (<18.5) 
-                   1478                     467 
-
-# ensure it's character
+```r
 colData_subset$BMI_range_new <- as.character(colData_subset$BMI_range_new)  
 colData_subset$BMI_range_new[colData_subset$BMI_range_new == "" | colData_subset$BMI_range_new == "NA"] <- NA
 
 table(colData_subset$BMI_range_new)
 
-#       Normal (18.5-25) Normal/Overweight (<30)             Obese (>30) 
-#                   3294                      56                    1231 
-#     Overweight (25-30)     Underweight (<18.5) 
-#                   1478                     467 
-
 sum(!is.na(colData_subset$BMI_range_new))
-#6526
-
 ```
+Results:
+* Underweight (<18.5)  467
+* Normal (18.5-25)    3294
+* Overweight (25-30)  1478
+* Obese (>30)         1231
+* Normal/Overweight (<30) # We will leave this out
+* Alltogether 6526
+
 
 ## 5. Boxplot of ARG Load by Category and Sex
 
@@ -172,7 +166,7 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
 ```
 ## 5.1 Save image
 
-```
+```r
 setwd("/scratch/project_2008149/USER_WORKSPACES/karhula/DATA")
 
 ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
@@ -181,7 +175,7 @@ ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
 
 
-# N values can be removed. I left N values there so that it would be easier to interpret results.
+* N values can be removed. I left N values there so that it would be easier to interpret results.
 
 
 ```
