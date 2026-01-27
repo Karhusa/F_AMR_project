@@ -250,6 +250,12 @@ ggplot(colData_sex_clean,
 
 ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
+
+![]()
+
+
+
+
 ### 5.7. GAM
 ```r
 
