@@ -200,6 +200,8 @@ ggplot(colData_sex_clean,
 ```r
 ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
+
+!(Regression analysis ARG Load by Age and Sex)[https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_ARG_load_by_age_sex.png]
 ### 5.5 Linear regression with results
 ```
 model <- lm(log10_ARG_load ~ age_years + sex, data = colData_sex_clean)
