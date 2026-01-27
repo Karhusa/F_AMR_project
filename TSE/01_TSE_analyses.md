@@ -251,7 +251,7 @@ ggplot(colData_sex_clean,
 ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
 
-![]()
+![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
 
 
