@@ -7,6 +7,7 @@ library(SummarizedExperiment)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
+library(gtsummary)
 ```
 ## 2. Load TSE
 
@@ -36,15 +37,13 @@ colData_subset <- colData_df %>%
     precise_age_category, imprecise_age_category
   )
 ```
-
+---
 ## 4.Look through specific columns
 
 ### 4.1 Precise_age_category
 ```
 colData_subset$precise_age_category[colData_subset$precise_age_category == "Unknown"] <- NA
-
 table(colData_subset$precise_age_category)
-
 sum(!is.na(colData_subset$precise_age_category))
 ```
 Results:
@@ -57,7 +56,6 @@ Results:
 * Middle-Age Adult 5666
 * Older Adult 1941
 * Oldest adult 212
-
 * All together 13957
 
 
@@ -66,9 +64,7 @@ Results:
 ```r
 
 table(colData_subset$age_years)
-
 # Many values (some are babys ages like 0.00XXXXXXXXXXXXX, so rounding up might be the best way to make sense to these numbers)
-
 colData_subset$age_years <- round(colData_subset$age_years)
 
 #   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18 
@@ -87,23 +83,19 @@ colData_subset$age_years <- round(colData_subset$age_years)
 sum(!is.na(colData_subset$age_years))
 ```
 * Ages 0 to 109, all ages presented
-  
 * All together 11189 
 
 ### 4.3 sex 
 
 ```r
 colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
-
 table(colData_subset$sex)
-
 sum(!is.na(colData_subset$sex))
 ```
 Results:
 * Female 7426
 * Male 7249
 * All together 14775
-
 
 ### 4.4  BMI_range_new
 ```r
@@ -122,8 +114,10 @@ Results:
 * Normal/Overweight (<30) # We will leave this out
 * Alltogether 6526
 
+---
+## 5. Analyses of ARG Load by Age and Sex
 
-## 5. Boxplot of ARG Load by Category and Sex
+## 5.1 Boxplot of ARG Load by Category and Sex
 
 ```r
 colData_subset$sex <- factor(colData_subset$sex, levels = c("female", "male"))  # make it a factor
@@ -164,22 +158,164 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
-## 5.1 Save image
+## 5.2 Save image
 
 ```r
 setwd("/scratch/project_2008149/USER_WORKSPACES/karhula/DATA")
-
 ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
-
 ![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
-
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
+## 5.3 Scatter plot + separate regression lines by sex
 
+```r
+colData_sex_clean <- colData_subset %>% filter(!is.na(sex))
+N_sex <- colData_sex_clean %>%
+  filter(!is.na(age_years), !is.na(log10_ARG_load)) %>%
+  count(sex)
+
+ggplot(colData_sex_clean,
+       aes(x = age_years, y = log10_ARG_load, color = sex)) +
+  geom_point(alpha = 0.25, size = 1) +
+  geom_smooth(
+    method = "lm",
+    se = TRUE,
+    linewidth = 1.4,
+    alpha = 0.15
+  ) +
+  scale_color_manual(
+    values = c("female" = "#D55E00", "male" = "#0072B2")
+  ) +
+  labs(
+    x = "Age (years)",
+    y = "Log10 ARG load",
+    title = "ARG load vs Age by Sex",
+    color = "Sex"
+  ) +
+  theme_minimal()
+```
+### 5.4. Save image
+```r
+ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
+```
+### 5.5 Linear regression with results
+```
+model <- lm(log10_ARG_load ~ age_years + sex, data = colData_sex_clean)
+summary(model)
+
+model_sum <- summary(model)
+
+beta_age <- model_sum$coefficients["age_years", "Estimate"]
+p_age    <- model_sum$coefficients["age_years", "Pr(>|t|)"]
+
+r2 <- model_sum$r.squared
+n  <- model_sum$df[1] + model_sum$df[2] + 
+
+ggplot(colData_sex_clean,
+       aes(x = age_years, y = log10_ARG_load)) +
+  geom_point(alpha = 0.2, color = "grey60") +
+  geom_smooth(
+    aes(color = sex),
+    method = "lm",
+    se = TRUE,
+    linewidth = 1.5
+  ) +
+  scale_color_manual(
+    values = c("female" = "#D55E00", "male" = "#0072B2")
+  ) +
+  annotate(
+    "text",
+    x = Inf, y = Inf,
+    hjust = 1.1, vjust = 1.2,
+    size = 4,
+    label = paste0(
+      "Age effect: β = ", round(beta_age, 4),
+      "\nP = ", signif(p_age, 3),
+      "\nR² = ", round(r2, 3),
+      "\nN = ", n
+    )
+  ) +
+  labs(
+    x = "Age (years)",
+    y = "Log10 ARG load",
+    title = "ARG load vs Age by Sex",
+    color = "Sex"
+  ) +
+  theme_minimal()
+
+ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
+```
+### 5.7. GAM
+```r
+
+library(mgcv)
+
+gam_model <- gam(
+  log10_ARG_load ~ s(age_years) + sex,
+  data = colData_sex_clean,
+  method = "REML"
+)
+
+summary(gam_model)
+
+ggplot(colData_sex_clean,
+       aes(x = age_years, y = log10_ARG_load)) +
+  geom_point(alpha = 0.2, color = "grey70") +
+  geom_smooth(
+    aes(color = sex),
+    method = "gam",
+    formula = y ~ s(x),
+    se = TRUE,
+    linewidth = 1.5
+  ) +
+  scale_color_manual(
+    values = c("female" = "#D55E00", "male" = "#0072B2")
+  ) +
+  labs(
+    x = "Age (years)",
+    y = "Log10 ARG load",
+    title = "ARG load vs Age by Sex (GAM)",
+    color = "Sex"
+  ) +
+  theme_minimal()
 ```
 
+Family: gaussian 
+Link function: identity 
+
+Formula:
+log10_ARG_load ~ s(age_years) + sex
+
+Parametric coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  2.751674   0.004265 645.156   <2e-16 ***
+sexmale     -0.013133   0.005999  -2.189   0.0286 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value    
+s(age_years) 7.73  8.392 41.25  <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+R-sq.(adj) =  0.033   Deviance explained = 3.39%
+-REML = 2171.1  Scale est. = 0.089663  n = 10069
+
+* sexmale  Estimate = -0.0131, p = 0.0286 (males have sligthly lower log10 ARG load than females)
+* edf: 7.73 (curve?)
+* F = 41.25
+* p < 2e-16
+* Adjusted R2 = 0.33 
+* n = 10 069
+
+---
+
+## 6. Analyses of ARG Load by BMI and Sex
+
+```r
 colData_subset_clean <- colData_subset %>%
   filter(BMI_range_new != "Normal/Overweight (<30)")
 
