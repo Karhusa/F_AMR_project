@@ -157,10 +157,6 @@ ggplot(colData_subset, aes(x = precise_age_category, y = log10_ARG_load, fill = 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-```
-## 5.2 Save image
-
-```r
 setwd("/scratch/project_2008149/USER_WORKSPACES/karhula/DATA")
 ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
@@ -168,7 +164,7 @@ ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
-## 5.3 Scatter plot + separate regression lines by sex
+## 5.2 Scatter plot + separate regression lines by sex
 
 ```r
 colData_sex_clean <- colData_subset %>% filter(!is.na(sex))
@@ -289,8 +285,23 @@ ggplot(colData_sex_clean,
     color = "Sex"
   ) +
   theme_minimal()
-```
 
+ggsave("GAM_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
+```
+![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
+| Section | Term | Estimate / Value | Std. Error | Statistic | p-value | Signif. |
+|--------|------|------------------|------------|-----------|---------|---------|
+| Model information | Family | Gaussian | – | – | – | – |
+| Model information | Link function | Identity | – | – | – | – |
+| Model information | Formula | log10_ARG_load ~ s(age_years) + sex | – | – | – | – |
+| Model information | Sample size (n) | 10069 | – | – | – | – |
+| Parametric coefficients | (Intercept) | 2.751674 | 0.004265 | t = 645.156 | <2e-16 | *** |
+| Parametric coefficients | sexmale | -0.013133 | 0.005999 | t = -2.189 | 0.0286 | * |
+| Smooth terms | s(age_years) | – | – | F = 41.25 (edf = 7.73, Ref.df = 8.392) | <2e-16 | *** |
+| Model fit | Adjusted R-squared | 0.033 | – | – | – | – |
+| Model fit | Deviance explained | 3.39% | – | – | – | – |
+| Model fit | REML | 2171.1 | – | – | – | – |
+| Model fit | Scale estimate | 0.089663 | – | – | – | – |
 Family: gaussian 
 Link function: identity 
 
