@@ -192,14 +192,10 @@ ggplot(colData_sex_clean,
   ) +
   theme_minimal()
 ```
-### 5.4. Save image
-```r
-ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
-```
 
 ![Regression analysis ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_ARG_load_by_age_sex.png)
 
-### 5.5 Linear regression with results
+### 5.3 Linear regression with results
 ```
 model <- lm(log10_ARG_load ~ age_years + sex, data = colData_sex_clean)
 summary(model)
@@ -249,10 +245,7 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
-
-
-
-### 5.7. GAM
+### 5.4 GAM
 ```r
 
 library(mgcv)
@@ -288,7 +281,8 @@ ggplot(colData_sex_clean,
 
 ggsave("GAM_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
-![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
+![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/GAM_ARG_load_by_age_sex.png)
+
 | Section | Term | Estimate / Value | Std. Error | Statistic | p-value | Signif. |
 |--------|------|------------------|------------|-----------|---------|---------|
 | Model information | Family | Gaussian | – | – | – | – |
@@ -302,38 +296,13 @@ ggsave("GAM_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 | Model fit | Deviance explained | 3.39% | – | – | – | – |
 | Model fit | REML | 2171.1 | – | – | – | – |
 | Model fit | Scale estimate | 0.089663 | – | – | – | – |
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log10_ARG_load ~ s(age_years) + sex
-
-Parametric coefficients:
-             Estimate Std. Error t value Pr(>|t|)    
-(Intercept)  2.751674   0.004265 645.156   <2e-16 ***
-sexmale     -0.013133   0.005999  -2.189   0.0286 *  
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-Approximate significance of smooth terms:
-              edf Ref.df     F p-value    
-s(age_years) 7.73  8.392 41.25  <2e-16 ***
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-R-sq.(adj) =  0.033   Deviance explained = 3.39%
--REML = 2171.1  Scale est. = 0.089663  n = 10069
-
-* sexmale  Estimate = -0.0131, p = 0.0286 (males have sligthly lower log10 ARG load than females)
-* edf: 7.73 (curve?)
-* F = 41.25
-* p < 2e-16
-* Adjusted R2 = 0.33 
-* n = 10 069
 
 ---
 
 ## 6. Analyses of ARG Load by BMI and Sex
+
+### 6.1 Boxplot of ARG Load by Category and Sex
+
 
 ```r
 colData_subset_clean <- colData_subset %>%
@@ -370,3 +339,106 @@ ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, fill = s
   ) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("Boxplot_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
+
+```
+![Boxplot by BMI and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_BMI_sex.png)
+
+## 6.2 Calclulations
+
+```r
+
+colData_subset_clean$BMI_range_new <- relevel(
+  colData_subset_clean$BMI_range_new,
+  ref = "Normal (18.5-25)"
+)
+
+model_add_norm <- lm(formula = log10_ARG_load ~ BMI_range_new + sex, data = colData_subset_clean)
+
+summary(model_add_norm)
+
+model_int_norm <- lm(log10_ARG_load ~ BMI_range_new * sex, data = colData_subset_clean)
+
+summary(model_int_norm)
+
+```
+
+| Term                              | Estimate  | Std. Error | t value | p-value     | Significance |
+|----------------------------------|----------|------------|---------|------------|-------------|
+| (Intercept)                       | 2.760985 | 0.006611   | 417.631 | < 2e-16    | ***         |
+| BMI_range_newUnderweight (<18.5)  | 0.073392 | 0.015074   | 4.869   | 1.15e-06   | ***         |
+| BMI_range_newOverweight (25-30)   | -0.035234| 0.009786   | -3.601  | 0.00032    | **          |
+| BMI_range_newObese (>30)          | -0.051683| 0.010229   | -5.053  | 4.48e-07   | ***         |
+| sexmale                            | 0.019259 | 0.007715   | 2.496   | 0.01258    | *           |
+
+* Residual standard error: 0.303 on 6252 df
+* Multiple R-squared: 0.0117, Adjusted R-squared: 0.0111
+* F-statistic: 18.5 on 4 and 6252 df, p = 3.961e-15
+
+
+
+| Term                                   | Estimate  | Std. Error | t value | p-value     | Significance |
+|---------------------------------------|----------|------------|---------|------------|-------------|
+| (Intercept)                            | 2.751587 | 0.007578   | 363.110 | < 2e-16    | ***         |
+| BMI_range_newUnderweight (<18.5)       | 0.085481 | 0.019171   | 4.459   | 8.38e-06   | ***         |
+| BMI_range_newOverweight (25-30)        | -0.042835| 0.014898   | -2.875  | 0.004051   | **          |
+| BMI_range_newObese (>30)               | -0.004661| 0.014251   | -0.327  | 0.743622   |             |
+| sexmale                                | 0.037950 | 0.010687   | 3.551   | 0.000386   | ***         |
+| BMI_range_newUnderweight:sexmale       | -0.026054| 0.031022   | -0.840  | 0.401031   |             |
+| BMI_range_newOverweight:sexmale        | 0.009792 | 0.019745   | 0.496   | 0.619973   |             |
+| BMI_range_newObese:sexmale             | -0.096983| 0.020428   | -4.747  | 2.11e-06   | ***         |
+
+* Residual standard error: 0.3024 on 6249 df
+* Multiple R-squared: 0.01584, Adjusted R-squared: 0.01474
+* F-statistic: 14.37 on 7 and 6249 df, p < 2.2e-16
+
+### 6.3 Interaction model plot
+
+```
+
+colData_subset_clean$BMI_range_new <- factor(
+  colData_subset_clean$BMI_range_new,
+  levels = c("Underweight (<18.5)", "Normal (18.5-25)", 
+             "Overweight (25-30)", "Obese (>30)")
+)
+
+counts <- colData_subset_clean %>%
+  group_by(BMI_range_new, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(
+    y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.05,
+    y_offset = ifelse(sex == "female", 0.02, -0.02)  # separate male/female N labels slightly
+  )
+
+# Colors for regression lines
+line_colors <- c("female" = "#FF6666", "male" = "#6666FF")  
+
+# Plot (example: interaction model)
+ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, color = sex, group = sex)) +
+  geom_jitter(width = 0.2, alpha = 0.3, color = "grey60") +  # points in light grey
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.2, aes(color = sex)) +
+  scale_color_manual(values = line_colors) +
+  geom_text(
+    data = counts,
+    aes(x = BMI_range_new, y = y_pos + y_offset, label = paste0("N=", N), color = sex),
+    position = position_dodge(width = 0.8),
+    size = 3,
+    show.legend = FALSE
+  ) +
+  labs(
+    x = "BMI Category",
+    y = "Log10 ARG Load",
+    title = "ARG Load by BMI × Sex",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
+
+![Interaction model by BMI sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Interaction_model_by_BMI_sex.png)
+
+```
+
+
