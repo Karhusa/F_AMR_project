@@ -437,8 +437,10 @@ ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, color = 
 
 ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
+```
+
 ![Interaction model by BMI sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Interaction_model_by_BMI_sex.png)
 
-```
+
 
 
