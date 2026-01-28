@@ -506,7 +506,7 @@ model_int_norm <- lm(log10_ARG_load ~ BMI_range_new * sex, data = colData_subset
 summary(model_int_norm)
 
 ```
-
+**Additive model:**
 | Term                              | Estimate  | Std. Error | t value | p-value     | Significance |
 |----------------------------------|----------|------------|---------|------------|-------------|
 | (Intercept)                       | 2.760985 | 0.006611   | 417.631 | < 2e-16    | ***         |
@@ -520,7 +520,7 @@ summary(model_int_norm)
 * F-statistic: 18.5 on 4 and 6252 df, p = 3.961e-15
 
 
-
+**Interaction model:**
 | Term                                   | Estimate  | Std. Error | t value | p-value     | Significance |
 |---------------------------------------|----------|------------|---------|------------|-------------|
 | (Intercept)                            | 2.751587 | 0.007578   | 363.110 | < 2e-16    | ***         |
@@ -557,7 +557,7 @@ counts <- colData_subset_clean %>%
 # Colors for regression lines
 line_colors <- c("female" = "#FF6666", "male" = "#6666FF")  
 
-# Plot (example: interaction model)
+# Plot Interaction Model
 ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, color = sex, group = sex)) +
   geom_jitter(width = 0.2, alpha = 0.3, color = "grey60") +  # points in light grey
   geom_smooth(method = "lm", se = TRUE, linewidth = 1.2, aes(color = sex)) +
