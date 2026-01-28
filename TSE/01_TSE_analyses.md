@@ -442,5 +442,49 @@ ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 ![Interaction model by BMI sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Interaction_model_by_BMI_sex.png)
 
 
+---
 
+## 7. Analyses of ARG Load by UTI and Sex
 
+```
+colData_subset_clean <- colData_subset %>%
+  filter(!is.na(UTI_history) & !is.na(sex))
+
+colData_subset_clean$UTI_history <- factor(
+  colData_subset_clean$UTI_history,
+  levels = c("No", "Yes")  # set "No" as reference
+)
+
+colData_subset_clean$sex <- factor(colData_subset_clean$sex, levels = c("female", "male"))
+
+counts_uti <- colData_subset_clean %>%
+  group_by(UTI_history, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1,
+         y_offset = ifelse(sex == "female", 0.03, -0.03))
+
+ggplot(colData_subset_clean, aes(x = UTI_history, y = log10_ARG_load, color = sex)) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 1.5) +  # show individual ARG loads
+  geom_boxplot(aes(fill = sex), alpha = 0.4, position = position_dodge(width = 0.8), outlier.shape = NA) +
+  geom_text(
+    data = counts_uti,
+    aes(x = UTI_history, y = y_pos + y_offset, label = paste0("N=", N), color = sex),
+    position = position_dodge(width = 0.8),
+    size = 3,
+    show.legend = FALSE
+  ) +
+  scale_fill_manual(values = c("female" = "#FF6666", "male" = "#6666FF")) +
+  scale_color_manual(values = c("female" = "#FF3333", "male" = "#3333FF")) +
+  labs(
+    x = "UTI History",
+    y = "Log10 ARG Load",
+    title = "ARG Load by UTI History and Sex",
+    fill = "Sex",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("Boxplot_by_UTI_sex.png", width = 8, height = 6, dpi = 300)
+
+```
