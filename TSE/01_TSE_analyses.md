@@ -115,6 +115,149 @@ Results:
 * Alltogether 6526
 
 ---
+## 5. Ananlyses of ARG load and sex
+
+
+## 5.1 Boxplot ARG loand and sex
+```r
+plot_df <- colData_subset %>% filter(!is.na(log10_ARG_load), !is.na(sex))
+
+n_df <- plot_df %>% count(sex)
+
+ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
+  
+  geom_jitter(
+    width = 0.15,
+    size = 1.2,
+    alpha = 0.25,
+    color = "grey30"
+  ) +
+  
+  geom_boxplot(
+    width = 0.55,
+    outlier.shape = NA,
+    alpha = 0.8
+  ) +
+
+  geom_text(
+    data = n_df,
+    aes(
+      x = sex,
+      y = max(plot_df$log10_ARG_load, na.rm = TRUE) + 0.1,
+      label = paste0("N = ", n)
+    ),
+    inherit.aes = FALSE,
+    size = 4
+  ) +
+  
+  labs(
+    title = "ARG Load by Sex",
+    x = "Sex",
+    y = expression(log[10]*"(ARG load)")
+  ) +
+  
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold"),
+    axis.title.x = element_text(margin = margin(t = 10)),
+    axis.title.y = element_text(margin = margin(r = 10))
+  )
+
+ggsave("ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
+
+```
+![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
+
+## 5.2. Descriptive statistics
+```r
+colData_subset %>%
+  filter(!is.na(sex), !is.na(log10_ARG_load)) %>%
+  group_by(sex) %>%
+  summarise(
+    mean_ARG = mean(log10_ARG_load),
+    median_ARG = median(log10_ARG_load),
+    sd_ARG = sd(log10_ARG_load),
+    n = n()
+  )
+```
+
+| Sex | Mean | Median | SD | N |
+|-----|-----:|-------:|---:|--:|
+| Female | 2.75 | 2.76 | 0.311 | 7,426 |
+| Male   | 2.72 | 2.72 | 0.311 | 7,349 |
+
+
+## 5.3 Wilcoxon test
+
+```r
+plot_df <- colData_subset %>%
+  filter(!is.na(log10_ARG_load), !is.na(sex))
+
+# Sample size per sex
+n_df <- plot_df %>%
+  count(sex)
+
+# Wilcoxon test
+wilcox_res <- wilcox.test(log10_ARG_load ~ sex, data = plot_df)
+
+p_label <- paste0("Wilcoxon p = ", signif(wilcox_res$p.value, 3))
+
+```
+## 5.4 Boxplot with wilcoxon test value
+```r
+
+ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
+  
+  geom_jitter(
+    width = 0.15,
+    size = 1.2,
+    alpha = 0.25,
+    color = "grey30"
+  ) +
+  
+  geom_boxplot(
+    width = 0.55,
+    outlier.shape = NA,
+    alpha = 0.8
+  ) +
+  
+  geom_text(
+    data = n_df,
+    aes(
+      x = sex,
+      y = max(plot_df$log10_ARG_load) + 0.15,
+      label = paste0("N = ", n)
+    ),
+    inherit.aes = FALSE,
+    size = 4
+  ) +
+  
+  # p-value 
+  annotate(
+    "text",
+    x = 1.5,
+    y = max(plot_df$log10_ARG_load) + 0.35,
+    label = p_label,
+    size = 4.2,
+    fontface = "italic"
+  ) +
+  
+  labs(
+    title = "ARG Load by Sex",
+    x = "Sex",
+    y = expression(log[10]*"(ARG load)")
+  ) +
+  
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold")
+  )
+```
+
+
+--
 ## 5. Analyses of ARG Load by Age and Sex
 
 ## 5.1 Boxplot of ARG Load by Category and Sex
