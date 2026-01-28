@@ -46,8 +46,7 @@ colData_subset$precise_age_category[colData_subset$precise_age_category == "Unkn
 table(colData_subset$precise_age_category)
 sum(!is.na(colData_subset$precise_age_category))
 ```
-Results:
-
+**Results:**
 * Infant 1406
 * Toddler 185
 * Child 837
@@ -62,9 +61,9 @@ Results:
 ### 4.2 age_years
 
 ```r
-
 table(colData_subset$age_years)
 # Many values (some are babys ages like 0.00XXXXXXXXXXXXX, so rounding up might be the best way to make sense to these numbers)
+
 colData_subset$age_years <- round(colData_subset$age_years)
 
 #   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18 
@@ -82,6 +81,7 @@ colData_subset$age_years <- round(colData_subset$age_years)
 
 sum(!is.na(colData_subset$age_years))
 ```
+**Results:**
 * Ages 0 to 109, all ages presented
 * All together 11189 
 
@@ -92,7 +92,7 @@ colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA 
 table(colData_subset$sex)
 sum(!is.na(colData_subset$sex))
 ```
-Results:
+**Results:**
 * Female 7426
 * Male 7249
 * All together 14775
@@ -101,12 +101,10 @@ Results:
 ```r
 colData_subset$BMI_range_new <- as.character(colData_subset$BMI_range_new)  
 colData_subset$BMI_range_new[colData_subset$BMI_range_new == "" | colData_subset$BMI_range_new == "NA"] <- NA
-
 table(colData_subset$BMI_range_new)
-
 sum(!is.na(colData_subset$BMI_range_new))
 ```
-Results:
+**Results:**
 * Underweight (<18.5)  467
 * Normal (18.5-25)    3294
 * Overweight (25-30)  1478
@@ -117,7 +115,6 @@ Results:
 ---
 ## 5. Ananlyses of ARG load and sex
 
-
 ## 5.1 Boxplot ARG loand and sex
 ```r
 plot_df <- colData_subset %>% filter(!is.na(log10_ARG_load), !is.na(sex))
@@ -125,7 +122,6 @@ plot_df <- colData_subset %>% filter(!is.na(log10_ARG_load), !is.na(sex))
 n_df <- plot_df %>% count(sex)
 
 ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
-  
   geom_jitter(
     width = 0.15,
     size = 1.2,
@@ -167,7 +163,7 @@ ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
 ggsave("ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
 
 ```
-![ARG Load by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_age_sex.png)
+![ARG Load by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_sex.png)
 
 ## 5.2. Descriptive statistics
 ```r
@@ -254,13 +250,17 @@ ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
     legend.position = "none",
     plot.title = element_text(face = "bold")
   )
+
+ggsave("wilcoxon_ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
+
 ```
+![ARG Load by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Wilcoxon_ARG_load_by_sex.png)
 
 
 --
-## 5. Analyses of ARG Load by Age and Sex
+## 6. Analyses of ARG Load by Age and Sex
 
-## 5.1 Boxplot of ARG Load by Category and Sex
+## 6.1 Boxplot of ARG Load by Category and Sex
 
 ```r
 colData_subset$sex <- factor(colData_subset$sex, levels = c("female", "male"))  # make it a factor
@@ -307,7 +307,7 @@ ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
-## 5.2 Scatter plot + separate regression lines by sex
+## 6.2 Scatter plot + separate regression lines by sex
 
 ```r
 colData_sex_clean <- colData_subset %>% filter(!is.na(sex))
@@ -338,7 +338,7 @@ ggplot(colData_sex_clean,
 
 ![Regression analysis ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_ARG_load_by_age_sex.png)
 
-### 5.3 Linear regression with results
+### 6.3 Linear regression with results
 ```
 model <- lm(log10_ARG_load ~ age_years + sex, data = colData_sex_clean)
 summary(model)
@@ -388,7 +388,7 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
-### 5.4 GAM
+### 6.4 GAM
 ```r
 
 library(mgcv)
@@ -442,9 +442,9 @@ ggsave("GAM_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 
 ---
 
-## 6. Analyses of ARG Load by BMI and Sex
+## 7. Analyses of ARG Load by BMI and Sex
 
-### 6.1 Boxplot of ARG Load by Category and Sex
+### 7.1 Boxplot of ARG Load by Category and Sex
 
 
 ```r
