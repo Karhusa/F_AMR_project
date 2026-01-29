@@ -309,22 +309,21 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 ```
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
-
 | Term        | Estimate   | Std. Error | t value | Pr(>|t|) | Significance |
 |-------------|------------|------------|---------|----------|--------------|
 | (Intercept) | 2.6921235  | 0.0064149  | 419.667 | < 2e-16  | *** |
 | age_years   | 0.0014798  | 0.0001257  | 11.775  | < 2e-16  | *** |
 | sexmale     | -0.0084796 | 0.0060318  | -1.406  | 0.16     |  |
 
-**Model summary**
-
-- Residual standard error: 0.3024  
-- Degrees of freedom: 10066  
-- Observations removed (missingness): 4706  
-- Multiple R²: 0.01369  
-- Adjusted R²: 0.0135  
-- F-statistic: 69.87 (2, 10066 DF)  
-- Model p-value: < 2.2e-16
+| Metric | Value |
+|-------|-------|
+| Residual standard error | 0.3024 |
+| Degrees of freedom | 10066 |
+| Observations removed (missingness) | 4706 |
+| Multiple R-squared | 0.01369 |
+| Adjusted R-squared | 0.0135 |
+| F-statistic | 69.87 (2, 10066 DF) |
+| Model p-value | < 2.2e-16 |
 
 ### 6.4 Generalized Additive Model (GAM)
 * A GAM models the outcome as a sum of smooth functions of predictors rather than simple linear effects.
