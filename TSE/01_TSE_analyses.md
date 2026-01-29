@@ -584,19 +584,17 @@ lm_uti <- lm(
 summary(lm_uti)
 
 ```
+| Section                 | Term           | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------|----------------|------------|------------|-----------|---------|
+| Parametric coefficients | (Intercept)    | 2.748995       | 0.003631   | t = 757.110 | <2e-16   | ***     |
+| Parametric coefficients | UTI_historyYes | 0.066736       | 0.019838   | t = 3.364   | 0.00077  | ***     |
+| Parametric coefficients | sexmale        | -0.034817      | 0.005117   | t = -6.804  | 1.06e-11 | ***     |
+| Model fit               | Residual standard error | 0.3108 | – | – | – | – |
+| Model fit               | Multiple R-squared      | 0.003983 | – | – | – | – |
+| Model fit               | Adjusted R-squared      | 0.003849 | – | – | – | – |
+| Model fit               | F-statistic             | 29.54 on 2 and 14772 DF | – | – | 1.574e-13 | – |
 
 
-
-
-
-**Model summary**
-
-- Residual standard error: 0.3108  
-- Degrees of freedom: 14772  
-- Multiple R²: 0.003983  
-- Adjusted R²: 0.003849  
-- F-statistic: 29.54 (2, 14772 DF)  
-- Model p-value: 1.574e-13
 
 
 ## 7.2 Interactive model
@@ -609,23 +607,16 @@ lm_uti_int <- lm(
 summary(lm_uti_int)
 
 ```
-
-| Term                     | Estimate  | Std. Error | t value | `Pr(>|t|)` | Significance |
-|--------------------------|-----------|------------|---------|-------------|--------------|
-| (Intercept)              | 2.7489996 | 0.003646   | 754.062 | < 2e-16     | *** |
-| UTI_historyYes           | 0.066507  | 0.025234   | 2.636   | 0.00841     | ** |
-| sexmale                  | -0.034827 | 0.005159   | -6.751  | 1.52e-11    | *** |
-| UTI_historyYes:sexmale   | 0.000599  | 0.040832   | 0.015   | 0.98829     |  |
-
-
-**Model summary**
-
-- Residual standard error: 0.3109  
-- Degrees of freedom: 14771  
-- Multiple R²: 0.003983  
-- Adjusted R²: 0.003781  
-- F-statistic: 19.69 (3, 14771 DF)  
-- Model p-value: 9.814e-13
+| Section                 | Term                  | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------------|----------------|------------|------------|-----------|---------|
+| Parametric coefficients | (Intercept)           | 2.7489996      | 0.0036456  | t = 754.062 | <2e-16   | ***     |
+| Parametric coefficients | UTI_historyYes        | 0.0665069      | 0.0252336  | t = 2.636   | 0.00841  | **      |
+| Parametric coefficients | sexmale               | -0.0348266     | 0.0051587  | t = -6.751  | 1.52e-11 | ***     |
+| Parametric coefficients | UTI_historyYes:sexmale| 0.0005994      | 0.0408320  | t = 0.015   | 0.98829  | –       |
+| Model fit               | Residual standard error | 0.3109       | –          | –          | –         | –       |
+| Model fit               | Multiple R-squared      | 0.003983     | –          | –          | –         | –       |
+| Model fit               | Adjusted R-squared      | 0.003781     | –          | –          | –         | –       |
+| Model fit               | F-statistic             | 19.69 on 3 and 14771 DF | – | – | 9.814e-13 | – |
 
 
 
