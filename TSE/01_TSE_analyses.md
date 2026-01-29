@@ -310,6 +310,7 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
+
 | Term        | Estimate   | Std. Error | t value | Pr(>|t|) | Significance |
 |------------|------------|------------|---------|----------|--------------|
 | (Intercept) | 2.6921235  | 0.0064149  | 419.667 | < 2e-16  | *** |
@@ -581,6 +582,7 @@ lm_uti <- lm(
 )
 
 summary(lm_uti)
+
 ```
 
 
@@ -589,6 +591,7 @@ summary(lm_uti)
 | (Intercept)     | 2.748995  | 0.003631   | 757.110 | < 2e-16  | *** |
 | UTI_historyYes  | 0.066736  | 0.019838   | 3.364   | 0.00077  | *** |
 | sexmale         | -0.034817 | 0.005117   | -6.804  | 1.06e-11 | *** |
+
 
 **Model summary**
 
