@@ -618,41 +618,119 @@ ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
 ## 7. Analyses of ARG Load by UTI and Sex
 
-```
-colData_subset_clean <- colData_subset %>% filter(!is.na(UTI_history) & !is.na(sex))
+## 7.1 Boxplot of UTI and sex
+```r
 
-colData_subset_clean$UTI_history <- factor(colData_subset_clean$UTI_history, levels = c("No", "Yes")  )
+colData_subset_clean <- colData_subset %>%
+  filter(!is.na(UTI_history) & !is.na(sex))
 
-colData_subset_clean$sex <- factor(colData_subset_clean$sex, levels = c("female", "male"))
+colData_subset_clean$UTI_history <- factor(
+  colData_subset_clean$UTI_history,
+  levels = c("No", "Yes")
+)
+
+colData_subset_clean$sex <- factor(
+  colData_subset_clean$sex,
+  levels = c("female", "male")
+)
 
 counts_uti <- colData_subset_clean %>%
   group_by(UTI_history, sex) %>%
   summarise(N = n(), .groups = "drop") %>%
-  mutate(y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1,
-         y_offset = ifelse(sex == "female", 0.03, -0.03))
+  mutate(
+    y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1
+  )
 
-ggplot(colData_subset_clean, aes(x = UTI_history, y = log10_ARG_load, color = sex)) +
-  geom_jitter(width = 0.2, alpha = 0.3, size = 1.5) +  # show individual ARG loads
-  geom_boxplot(aes(fill = sex), alpha = 0.4, position = position_dodge(width = 0.8), outlier.shape = NA) +
+ggplot(
+  colData_subset_clean,
+  aes(x = UTI_history, y = log10_ARG_load, fill = sex)
+) +
+  geom_boxplot(
+    alpha = 0.7,
+    position = position_dodge(width = 0.8)
+  ) +
+  scale_fill_manual(
+    values = c(
+      "female" = "#E69F00",  # muted orange
+      "male"   = "#56B4E9"   # muted blue
+    )
+  ) +
   geom_text(
     data = counts_uti,
-    aes(x = UTI_history, y = y_pos + y_offset, label = paste0("N=", N), color = sex),
+    aes(
+      x = UTI_history,
+      y = y_pos,
+      label = paste0("N=", N)
+    ),
     position = position_dodge(width = 0.8),
-    size = 3,
-    show.legend = FALSE
+    size = 3
   ) +
-  scale_fill_manual(values = c("female" = "#FF6666", "male" = "#6666FF")) +
-  scale_color_manual(values = c("female" = "#FF3333", "male" = "#3333FF")) +
   labs(
     x = "UTI History",
     y = "Log10 ARG Load",
     title = "ARG Load by UTI History and Sex",
-    fill = "Sex",
-    color = "Sex"
+    fill = "Sex"
   ) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
 
-ggsave("Boxplot_by_UTI_sex.png", width = 8, height = 6, dpi = 300)
+ggsave("Boxplot_by_UTI_sex_muted.png", width = 7, height = 5, dpi = 300)
 
 ```
+
+![Boxplot ARG Load by UTI_history and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_UTI_sex_muted.png)
+
+## 7.2 Linear model 
+
+```r
+lm_uti <- lm(
+  log10_ARG_load ~ UTI_history + sex,
+  data = colData_subset_clean
+)
+
+summary(lm_uti)
+```
+
+Coefficients
+
+| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
+|-----------------|-----------|------------|---------|----------|--------------|
+| (Intercept) | 2.748995 | 0.003631 | 757.110 | < 2e-16 | *** |
+| UTI_historyYes | 0.066736 | 0.019838 | 3.364 | 0.00077 | *** |
+| sexmale | -0.034817 | 0.005117 | -6.804 | 1.06e-11 | *** |
+
+Model Summary
+
+* Residual standard error	0.3108
+* Degrees of freedom	14772
+* Multiple R-squared	0.003983
+* Adjusted R-squared	0.003849
+* F-statistic (2, 14772 DF)	29.54
+* Model p-value	1.574e-13
+
+## 7.2 Interactive model
+
+```r
+lm_uti_int <- lm(
+  log10_ARG_load ~ UTI_history * sex,
+  data = colData_subset_clean
+)
+summary(lm_uti_int)
+
+```
+Coefficients
+| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
+|--------------------------|-----------|------------|---------|----------|--------------|
+| (Intercept) | 2.7489996 | 0.003646 | 754.062 | < 2e-16 | *** |
+| UTI_historyYes | 0.066507 | 0.025234 | 2.636 | 0.00841 | ** |
+| sexmale | -0.034827 | 0.005159 | -6.751 | 1.52e-11 | *** |
+| UTI_historyYes:sexmale | 0.000599 | 0.040832 | 0.015 | 0.98829 | |
+
+* Residual standard error	0.3109
+* Degrees of freedom	14771
+* Multiple R-squared	0.003983
+* Adjusted R-squared	0.003781
+* F-statistic (3, 14771 DF)	19.69
+* Model p-value	9.814e-13
+
+
