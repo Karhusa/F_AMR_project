@@ -91,24 +91,21 @@ sum(!is.na(colData_subset$age_years))
 colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
 table(colData_subset$sex)
 sum(!is.na(colData_subset$sex))
-
-### 4.4. UTI_history
-
-```r
-table(colData_subset$UTI_history)
-
-   No   Yes 
-24355   250 
-
-```
-**Results**
-* No 24355
-* Yes 250
 ```
 **Results:**
 * Female 7426
 * Male 7249
 * All together 14775
+
+### 4.4. UTI_history
+
+```r
+table(colData_subset$UTI_history)
+```
+**Results**
+* No 24355
+* Yes 250
+
 
 ### 4.4  BMI_range_new
 ```r
@@ -128,7 +125,7 @@ sum(!is.na(colData_subset$BMI_range_new))
 ---
 ## 5. Ananlyses of ARG load and sex
 
-## 5.1 Boxplot ARG loand and sex
+### 5.1 Boxplot ARG loand and sex
 ```r
 plot_df <- colData_subset %>% filter(!is.na(log10_ARG_load), !is.na(sex))
 
@@ -178,7 +175,7 @@ ggsave("ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
 ```
 ![ARG Load by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/ARG_load_by_sex.png)
 
-## 5.2. Descriptive statistics
+### 5.2. Descriptive statistics
 ```r
 colData_subset %>%
   filter(!is.na(sex), !is.na(log10_ARG_load)) %>%
@@ -197,7 +194,7 @@ colData_subset %>%
 | Male   | 2.72 | 2.72 | 0.311 | 7,349 |
 
 
-## 5.3 Wilcoxon test
+### 5.3 Wilcoxon test
 
 ```r
 plot_df <- colData_subset %>%
@@ -253,19 +250,14 @@ ggplot(plot_df, aes(x = sex, y = log10_ARG_load, fill = sex)) +
   ) +
   
   labs(
-    title = "ARG Load by Sex",
-    x = "Sex",
-    y = expression(log[10]*"(ARG load)")
+    title = "ARG Load by Sex", x = "Sex", y = expression(log[10]*"(ARG load)")
   ) +
   
   theme_minimal(base_size = 13) +
-  theme(
-    legend.position = "none",
-    plot.title = element_text(face = "bold")
+  theme(legend.position = "none", plot.title = element_text(face = "bold")
   )
 
 ggsave("wilcoxon_ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
-
 ```
 ![ARG Load by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Wilcoxon_ARG_load_by_sex.png)
 
@@ -273,7 +265,7 @@ ggsave("wilcoxon_ARG_load_by_sex.png", width = 8, height = 6, dpi = 300)
 --
 ## 6. Analyses of ARG Load by Age and Sex
 
-## 6.1 Boxplot of ARG Load by Category and Sex
+### 6.1 Boxplot of ARG Load by Category and Sex
 
 ```r
 colData_subset$sex <- factor(colData_subset$sex, levels = c("female", "male"))  # make it a factor
@@ -320,7 +312,7 @@ ggsave("ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
-## 6.2 Scatter plot + separate regression lines by sex
+### 6.2 Scatter plot + separate regression lines by sex
 
 ```r
 colData_sex_clean <- colData_subset %>% filter(!is.na(sex))
@@ -331,20 +323,12 @@ N_sex <- colData_sex_clean %>%
 ggplot(colData_sex_clean,
        aes(x = age_years, y = log10_ARG_load, color = sex)) +
   geom_point(alpha = 0.25, size = 1) +
-  geom_smooth(
-    method = "lm",
-    se = TRUE,
-    linewidth = 1.4,
-    alpha = 0.15
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.4, alpha = 0.15
   ) +
   scale_color_manual(
     values = c("female" = "#D55E00", "male" = "#0072B2")
   ) +
-  labs(
-    x = "Age (years)",
-    y = "Log10 ARG load",
-    title = "ARG load vs Age by Sex",
-    color = "Sex"
+  labs(x = "Age (years)", y = "Log10 ARG load", title = "ARG load vs Age by Sex", color = "Sex"
   ) +
   theme_minimal()
 ```
@@ -364,21 +348,15 @@ p_age    <- model_sum$coefficients["age_years", "Pr(>|t|)"]
 r2 <- model_sum$r.squared
 n  <- model_sum$df[1] + model_sum$df[2] + 
 
-ggplot(colData_sex_clean,
-       aes(x = age_years, y = log10_ARG_load)) +
+ggplot(colData_sex_clean, aes(x = age_years, y = log10_ARG_load)
+  ) +
   geom_point(alpha = 0.2, color = "grey60") +
-  geom_smooth(
-    aes(color = sex),
-    method = "lm",
-    se = TRUE,
-    linewidth = 1.5
+  geom_smooth(aes(color = sex), method = "lm", se = TRUE,linewidth = 1.5
   ) +
   scale_color_manual(
     values = c("female" = "#D55E00", "male" = "#0072B2")
   ) +
-  annotate(
-    "text",
-    x = Inf, y = Inf,
+  annotate("text", x = Inf, y = Inf,
     hjust = 1.1, vjust = 1.2,
     size = 4,
     label = paste0(
@@ -388,11 +366,7 @@ ggplot(colData_sex_clean,
       "\nN = ", n
     )
   ) +
-  labs(
-    x = "Age (years)",
-    y = "Log10 ARG load",
-    title = "ARG load vs Age by Sex",
-    color = "Sex"
+  labs(x = "Age (years)", y = "Log10 ARG load", title = "ARG load vs Age by Sex", color = "Sex"
   ) +
   theme_minimal()
 
