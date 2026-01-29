@@ -310,19 +310,21 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
-| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
-|------------|------------|------------|---------|----------|--------------|
-| (Intercept) | 2.6921235 | 0.0064149 | 419.667 | < 2e-16 | *** |
-| age_years | 0.0014798 | 0.0001257 | 11.775 | < 2e-16 | *** |
-| sexmale | -0.0084796 | 0.0060318 | -1.406 | 0.16 | |
+| Term        | Estimate   | Std. Error | t value | Pr(>|t|) | Significance |
+|-------------|------------|------------|---------|----------|--------------|
+| (Intercept) | 2.6921235  | 0.0064149  | 419.667 | < 2e-16  | *** |
+| age_years   | 0.0014798  | 0.0001257  | 11.775  | < 2e-16  | *** |
+| sexmale     | -0.0084796 | 0.0060318  | -1.406  | 0.16     |  |
 
-* Residual standard error	0.3024
-* Degrees of freedom	10066
-* Observations removed (missingness)	4706
-* Multiple R²	0.01369
-* Adjusted R²	0.0135
-* F-statistic	69.87 (2, 10066 DF)
-* Model p-value	< 2.2e-16
+**Model summary**
+
+- Residual standard error: 0.3024  
+- Degrees of freedom: 10066  
+- Observations removed (missingness): 4706  
+- Multiple R²: 0.01369  
+- Adjusted R²: 0.0135  
+- F-statistic: 69.87 (2, 10066 DF)  
+- Model p-value: < 2.2e-16
 
 ### 6.4 Generalized Additive Model (GAM)
 * A GAM models the outcome as a sum of smooth functions of predictors rather than simple linear effects.
@@ -339,8 +341,7 @@ gam_model <- gam(
 
 summary(gam_model)
 
-ggplot(colData_sex_clean,
-       aes(x = age_years, y = log10_ARG_load)) +
+ggplot(colData_sex_clean, aes(x = age_years, y = log10_ARG_load)) +
   geom_point(alpha = 0.2, color = "grey70") +
   geom_smooth(
     aes(color = sex),
@@ -349,15 +350,8 @@ ggplot(colData_sex_clean,
     se = TRUE,
     linewidth = 1.5
   ) +
-  scale_color_manual(
-    values = c("female" = "#D55E00", "male" = "#0072B2")
-  ) +
-  labs(
-    x = "Age (years)",
-    y = "Log10 ARG load",
-    title = "ARG load vs Age by Sex (GAM)",
-    color = "Sex"
-  ) +
+  scale_color_manual(values = c("female" = "#D55E00", "male" = "#0072B2")) +
+  labs(x = "Age (years)", y = "Log10 ARG load", title = "ARG load vs Age by Sex (GAM)", color = "Sex") +
   theme_minimal()
 
 ggsave("GAM_ARG_load_by_age_sex.png", width = 8, height = 6, dpi = 300)
@@ -396,13 +390,11 @@ colData_subset_clean$BMI_range_new <- factor(
              "Overweight (25-30)", "Obese (>30)")
 )
 
-# Count N per category + sex
 counts <- colData_subset_clean %>%
   group_by(BMI_range_new, sex) %>%
   summarise(N = n(), .groups = "drop") %>%
   mutate(y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1)
 
-# Plot
 ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, fill = sex)) +
   geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8), na.rm = TRUE) +
   scale_fill_manual(values = c("female" = "#FF9999", "male" = "#9999FF")) +
@@ -410,16 +402,9 @@ ggplot(colData_subset_clean, aes(x = BMI_range_new, y = log10_ARG_load, fill = s
     data = counts,
     aes(x = BMI_range_new, y = y_pos, label = paste0("N=", N), color = sex),
     position = position_dodge(width = 0.8),
-    size = 3
-  ) +
-  labs(
-    x = "BMI Category",
-    y = "Log10 ARG Load",
-    title = "ARG Load by BMI Category and Sex",
-    fill = "Sex"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    size = 3) +
+  labs(x = "BMI Category", y = "Log10 ARG Load", title = "ARG Load by BMI Category and Sex", fill = "Sex") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ggsave("Boxplot_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
@@ -430,10 +415,7 @@ ggsave("Boxplot_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
 ```r
 
-colData_subset_clean$BMI_range_new <- relevel(
-  colData_subset_clean$BMI_range_new,
-  ref = "Normal (18.5-25)"
-)
+colData_subset_clean$BMI_range_new <- relevel(colData_subset_clean$BMI_range_new, ref = "Normal (18.5-25)")
 
 model_add_norm <- lm(formula = log10_ARG_load ~ BMI_range_new + sex, data = colData_subset_clean)
 
@@ -600,22 +582,22 @@ lm_uti <- lm(
 summary(lm_uti)
 ```
 
-Coefficients
 
-| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
+| Term            | Estimate  | Std. Error | t value | Pr(>|t|) | Significance |
 |-----------------|-----------|------------|---------|----------|--------------|
-| (Intercept) | 2.748995 | 0.003631 | 757.110 | < 2e-16 | *** |
-| UTI_historyYes | 0.066736 | 0.019838 | 3.364 | 0.00077 | *** |
-| sexmale | -0.034817 | 0.005117 | -6.804 | 1.06e-11 | *** |
+| (Intercept)     | 2.748995  | 0.003631   | 757.110 | < 2e-16  | *** |
+| UTI_historyYes  | 0.066736  | 0.019838   | 3.364   | 0.00077  | *** |
+| sexmale         | -0.034817 | 0.005117   | -6.804  | 1.06e-11 | *** |
 
-Model Summary
+**Model summary**
 
-* Residual standard error	0.3108
-* Degrees of freedom	14772
-* Multiple R-squared	0.003983
-* Adjusted R-squared	0.003849
-* F-statistic (2, 14772 DF)	29.54
-* Model p-value	1.574e-13
+- Residual standard error: 0.3108  
+- Degrees of freedom: 14772  
+- Multiple R²: 0.003983  
+- Adjusted R²: 0.003849  
+- F-statistic: 29.54 (2, 14772 DF)  
+- Model p-value: 1.574e-13
+
 
 ## 7.2 Interactive model
 
@@ -627,20 +609,22 @@ lm_uti_int <- lm(
 summary(lm_uti_int)
 
 ```
-Coefficients
 
-| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
+| Term                     | Estimate  | Std. Error | t value | Pr(>|t|) | Significance |
 |--------------------------|-----------|------------|---------|----------|--------------|
-| (Intercept) | 2.7489996 | 0.003646 | 754.062 | < 2e-16 | *** |
-| UTI_historyYes | 0.066507 | 0.025234 | 2.636 | 0.00841 | ** |
-| sexmale | -0.034827 | 0.005159 | -6.751 | 1.52e-11 | *** |
-| UTI_historyYes:sexmale | 0.000599 | 0.040832 | 0.015 | 0.98829 | |
+| (Intercept)              | 2.7489996 | 0.003646   | 754.062 | < 2e-16  | *** |
+| UTI_historyYes           | 0.066507  | 0.025234   | 2.636   | 0.00841  | ** |
+| sexmale                  | -0.034827 | 0.005159   | -6.751  | 1.52e-11 | *** |
+| UTI_historyYes:sexmale   | 0.000599  | 0.040832   | 0.015   | 0.98829  |  |
 
-* Residual standard error	0.3109
-* Degrees of freedom	14771
-* Multiple R-squared	0.003983
-* Adjusted R-squared	0.003781
-* F-statistic (3, 14771 DF)	19.69
-* Model p-value	9.814e-13
+**Model summary**
+
+- Residual standard error: 0.3109  
+- Degrees of freedom: 14771  
+- Multiple R²: 0.003983  
+- Adjusted R²: 0.003781  
+- F-statistic: 19.69 (3, 14771 DF)  
+- Model p-value: 9.814e-13
+
 
 
