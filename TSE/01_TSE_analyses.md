@@ -122,6 +122,16 @@ sum(!is.na(colData_subset$BMI_range_new))
 * Normal/Overweight (<30) # We will leave this out
 * Alltogether 6526
 
+### 4.5 Antibiotics used
+```r
+table(colData_subset$Antibiotics_used)
+
+```
+
+**Results**
+* No 23611
+* Yes 994
+
 ---
 ## 5. Ananlyses of ARG load and sex
 
@@ -511,7 +521,7 @@ ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
 ## 7. Analyses of ARG Load by UTI and Sex
 
-## 7.1 Boxplot of UTI and sex
+### 7.1 Boxplot of UTI and sex
 ```r
 
 colData_subset_clean <- colData_subset %>%
@@ -519,20 +529,17 @@ colData_subset_clean <- colData_subset %>%
 
 colData_subset_clean$UTI_history <- factor(
   colData_subset_clean$UTI_history,
-  levels = c("No", "Yes")
-)
+  levels = c("No", "Yes"))
 
 colData_subset_clean$sex <- factor(
   colData_subset_clean$sex,
-  levels = c("female", "male")
-)
+  levels = c("female", "male"))
 
 counts_uti <- colData_subset_clean %>%
   group_by(UTI_history, sex) %>%
   summarise(N = n(), .groups = "drop") %>%
   mutate(
-    y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1
-  )
+    y_pos = max(colData_subset_clean$log10_ARG_load, na.rm = TRUE) + 0.1)
 
 ggplot(
   colData_subset_clean,
@@ -573,13 +580,10 @@ ggsave("Boxplot_by_UTI_sex_muted.png", width = 7, height = 5, dpi = 300)
 
 ![Boxplot ARG Load by UTI_history and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_UTI_sex_muted.png)
 
-## 7.2 Linear model 
+### 7.2 Linear model 
 
 ```r
-lm_uti <- lm(
-  log10_ARG_load ~ UTI_history + sex,
-  data = colData_subset_clean
-)
+lm_uti <- lm(log10_ARG_load ~ UTI_history + sex, data = colData_subset_clean)
 
 summary(lm_uti)
 
@@ -597,7 +601,7 @@ summary(lm_uti)
 
 
 
-## 7.2 Interactive model
+### 7.2 Interactive model
 
 ```r
 lm_uti_int <- lm(
@@ -619,4 +623,68 @@ summary(lm_uti_int)
 | Model fit               | F-statistic             | 19.69 on 3 and 14771 DF | – | – | 9.814e-13 | – |
 
 
+---
 
+## 8. Analyses of antibiotic use
+
+### 8.1 Boxplot Antibiotics Use and Sex
+
+```r
+counts_abx <- colData_subset_clean %>%
+  group_by(Antibiotics_used, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(y_pos = max(colData_subset_clean$log10_ARG_load) + 0.1)  # position above max ARG load
+
+# Plot ARG load by Antibiotics_used and Sex with N values
+ggplot(colData_subset_clean, aes(x = Antibiotics_used, y = log10_ARG_load, fill = sex)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("female" = "#D55E00",  # muted red-orange
+                               "male"   = "#0072B2")) + # muted blue
+  geom_text(
+    data = counts_abx,
+    aes(x = Antibiotics_used, y = y_pos, label = paste0("N=", N)),
+    position = position_dodge(width = 0.8),
+    size = 3
+  ) +
+  labs(
+    x = "Antibiotics Used",
+    y = "Log10 ARG Load",
+    title = "ARG Load by Antibiotics Use and Sex",
+    fill = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+ggsave("Boxplot_by_AB_Use_sex.png", width = 7, height = 5, dpi = 300)
+
+```
+
+![Boxplot ARG Load by AB Use and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_AB_Use_sex.png)
+
+### 8.2 Linear model 
+
+```r
+lm_ab <- lm(log10_ARG_load ~ Antibiotics_used + sex, data = colData_subset_clean)
+
+summary(lm_ab)
+```
+
+| Section                 | Term                  | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------------|----------------|------------|------------|-----------|---------|
+| Parametric coefficients | (Intercept)           | 2.742171       | 0.003666   | t = 747.967 | <2e-16   | ***     |
+| Parametric coefficients | Antibiotics_usedYes   | 0.116893       | 0.010358   | t = 11.286  | <2e-16   | ***     |
+| Parametric coefficients | sexmale               | -0.034034      | 0.005096   | t = -6.678  | 2.5e-11  | ***     |
+| Model fit               | Residual standard error | 0.3096       | –          | –           | –         | –       |
+| Model fit               | Multiple R-squared      | 0.01174      | –          | –           | –         | –       |
+| Model fit               | Adjusted R-squared      | 0.01161      | –          | –           | –         | –       |
+| Model fit               | F-statistic             | 87.75 on 2 and 14772 DF | – | – | < 2.2e-16 | – |
+
+
+```
+
+
+### 8.3 Interaction model
+```
+lm_interaction <- lm(log10_ARG_load ~ Antibiotics_used * sex, data = colData_subset_clean)
+summary(lm_interaction)
+```
