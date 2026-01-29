@@ -91,6 +91,19 @@ sum(!is.na(colData_subset$age_years))
 colData_subset$sex[colData_subset$sex == "" | colData_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
 table(colData_subset$sex)
 sum(!is.na(colData_subset$sex))
+
+### 4.4. UTI_history
+
+```r
+table(colData_subset$UTI_history)
+
+   No   Yes 
+24355   250 
+
+```
+**Results**
+* No 24355
+* Yes 250
 ```
 **Results:**
 * Female 7426
@@ -388,7 +401,23 @@ ggsave("Regression_with_table_ARG_load_by_age_sex.png", width = 8, height = 6, d
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
 
-### 6.4 GAM
+| Term | Estimate | Std. Error | t value | Pr(>|t|) | Significance |
+|------------|------------|------------|---------|----------|--------------|
+| (Intercept) | 2.6921235 | 0.0064149 | 419.667 | < 2e-16 | *** |
+| age_years | 0.0014798 | 0.0001257 | 11.775 | < 2e-16 | *** |
+| sexmale | -0.0084796 | 0.0060318 | -1.406 | 0.16 | |
+
+* Residual standard error	0.3024
+* Degrees of freedom	10066
+* Observations removed (missingness)	4706
+* Multiple R²	0.01369
+* Adjusted R²	0.0135
+* F-statistic	69.87 (2, 10066 DF)
+* Model p-value	< 2.2e-16
+
+### 6.4 Generalized Additive Model (GAM)
+* A GAM models the outcome as a sum of smooth functions of predictors rather than simple linear effects.
+
 ```r
 
 library(mgcv)
@@ -590,13 +619,9 @@ ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 ## 7. Analyses of ARG Load by UTI and Sex
 
 ```
-colData_subset_clean <- colData_subset %>%
-  filter(!is.na(UTI_history) & !is.na(sex))
+colData_subset_clean <- colData_subset %>% filter(!is.na(UTI_history) & !is.na(sex))
 
-colData_subset_clean$UTI_history <- factor(
-  colData_subset_clean$UTI_history,
-  levels = c("No", "Yes")  # set "No" as reference
-)
+colData_subset_clean$UTI_history <- factor(colData_subset_clean$UTI_history, levels = c("No", "Yes")  )
 
 colData_subset_clean$sex <- factor(colData_subset_clean$sex, levels = c("female", "male"))
 
