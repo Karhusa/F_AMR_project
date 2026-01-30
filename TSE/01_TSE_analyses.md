@@ -7,7 +7,6 @@ library(SummarizedExperiment)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
-library(gtsummary)
 ```
 ## 2. Load TSE
 
