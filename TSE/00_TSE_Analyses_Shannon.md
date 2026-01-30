@@ -81,17 +81,16 @@ ggplot(plot_df, aes(x = sex, y = ARG_div_shan, fill = sex)) +
     axis.title.y = element_text(margin = margin(r = 10))
   )
 
-
 ggsave("Boxplot_Shannon_diversity_by_sex.png", width = 8, height = 6, dpi = 300)
+```
 
-´´´
 ### 4.2. Descriptive statistics (Shannon x Sex)
-´´´r
+
+```r
 colData_new_subset %>%
   filter(!is.na(sex), !is.na(ARG_div_shan)) %>% group_by(sex) %>%
   summarise(mean_ARGShannon = mean(ARG_div_shan), median_ARGShannon = median(ARG_div_shan), sd_ARGShannon = sd(ARG_div_shan), n = n())
 ```
-
 
 | sex    | Mean Shannon | Median Shannon | sd_ARGShannon | N    |
 |--------|----------------|-----------------|---------------|------|
@@ -106,7 +105,7 @@ wilcox_res <- wilcox.test(ARG_div_shan ~ sex, data = plot_df)
 p_label <- paste0("Wilcoxon p = ", signif(wilcox_res$p.value, 3))
 ```
 
-### 4.4 Same Boxplot with wilcoxon test vale
+### 4.4 Same Boxplot with wilcoxon test value
 
 ```r
 ggplot(plot_df, aes(x = sex, y = ARG_div_shan, fill = sex)) +
