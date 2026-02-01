@@ -83,6 +83,8 @@ ggplot(plot_df, aes(x = sex, y = ARG_div_shan, fill = sex)) +
 
 ggsave("Boxplot_Shannon_diversity_by_sex.png", width = 8, height = 6, dpi = 300)
 ```
+![Boxplot of ARG Shannon Diversity by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Boxplot_Shannon_diversity_by_sex.png")
+
 
 ### 4.2. Descriptive statistics (Shannon x Sex)
 
@@ -91,6 +93,7 @@ colData_new_subset %>%
   filter(!is.na(sex), !is.na(ARG_div_shan)) %>% group_by(sex) %>%
   summarise(mean_ARGShannon = mean(ARG_div_shan), median_ARGShannon = median(ARG_div_shan), sd_ARGShannon = sd(ARG_div_shan), n = n())
 ```
+
 
 | sex    | Mean Shannon | Median Shannon | sd_ARGShannon | N    |
 |--------|----------------|-----------------|---------------|------|
