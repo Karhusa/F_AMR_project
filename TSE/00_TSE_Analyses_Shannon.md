@@ -84,7 +84,7 @@ ggplot(plot_df, aes(x = sex, y = ARG_div_shan, fill = sex)) +
 ggsave("Boxplot_Shannon_diversity_by_sex.png", width = 8, height = 6, dpi = 300)
 ```
 
-![Boxplot of ARG Shannon Diversity by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Boxplot_Shannon_diversity_by_sex.png")
+![Boxplot of ARG Shannon Diversity by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Boxplot_Shannon_diversity_by_sex.png)
 
 
 ### 4.2. Descriptive statistics (Shannon x Sex)
