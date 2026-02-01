@@ -422,7 +422,7 @@ ggsave("Boxplot_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 ```
 ![Boxplot by BMI and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_BMI_sex.png)
 
-## 6.2 Calclulations
+## 7.2 Calclulations
 
 ```r
 
@@ -467,7 +467,7 @@ summary(model_int_norm)
 * Multiple R-squared: 0.01584, Adjusted R-squared: 0.01474
 * F-statistic: 14.37 on 7 and 6249 df, p < 2.2e-16
 
-### 6.3 Interaction model plot
+### 7.3 Interaction model plot
 
 ```
 
@@ -518,9 +518,9 @@ ggsave("Interaction_model_by_BMI_sex.png", width = 8, height = 6, dpi = 300)
 
 ---
 
-## 7. Analyses of ARG Load by UTI and Sex
+## 8. Analyses of ARG Load by UTI and Sex
 
-### 7.1 Boxplot of UTI and sex
+### 8.1 Boxplot of UTI and sex
 ```r
 
 colData_subset_clean <- colData_subset %>%
@@ -579,7 +579,7 @@ ggsave("Boxplot_by_UTI_sex_muted.png", width = 7, height = 5, dpi = 300)
 
 ![Boxplot ARG Load by UTI_history and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_UTI_sex_muted.png)
 
-### 7.2 Linear model 
+### 8.2 Linear model 
 
 ```r
 lm_uti <- lm(log10_ARG_load ~ UTI_history + sex, data = colData_subset_clean)
@@ -600,7 +600,7 @@ summary(lm_uti)
 
 
 
-### 7.2 Interactive model
+### 8.3 Interactive model
 
 ```r
 lm_uti_int <- lm(
@@ -624,9 +624,9 @@ summary(lm_uti_int)
 
 ---
 
-## 8. Analyses of antibiotic use
+## 9. Analyses of antibiotic use
 
-### 8.1 Boxplot Antibiotics Use and Sex
+### 9.1 Boxplot Antibiotics Use and Sex
 
 ```r
 counts_abx <- colData_subset_clean %>%
@@ -660,7 +660,7 @@ ggsave("Boxplot_by_AB_Use_sex.png", width = 7, height = 5, dpi = 300)
 
 ![Boxplot ARG Load by AB Use and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Boxplot_by_AB_Use_sex.png)
 
-### 8.2 Linear model 
+### 9.2 Linear model 
 
 ```r
 lm_ab <- lm(log10_ARG_load ~ Antibiotics_used + sex, data = colData_subset_clean)
@@ -682,7 +682,7 @@ summary(lm_ab)
 ```
 
 
-### 8.3 Interaction model
+### 9.3 Interaction model
 ```
 lm_interaction <- lm(log10_ARG_load ~ Antibiotics_used * sex, data = colData_subset_clean)
 summary(lm_interaction)
