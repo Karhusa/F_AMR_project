@@ -314,7 +314,7 @@ ggsave("GAM_ARG_Shannon_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
 ![Gam analysis ARG Shannon by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/GAM_ARG_Shannon_by_age_sex.png)
 
-| Term        | Estimate | Std. Error | t value | Pr(>|t|)    | Significance |
+| Term       | Estimate | Std. Error | t value | Pr(>|t|)    | Significance |
 |------------|---------|------------|---------|------------|-------------|
 | (Intercept)| 1.9466  | 0.00689    | 282.43  | < 2e-16    | ***         |
 | sexmale    | -0.06394| 0.00970    | -6.595  | 4.47e-11   | ***         |
