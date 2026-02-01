@@ -203,6 +203,55 @@ ggsave("Boxplot_Shannon_diversity_by_age_sex.png", width = 8, height = 6, dpi = 
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
+```r
+age_levels <- c(
+  "Infant", "Toddler", "Child", "Teenage", 
+  "Young adult", "Middle-Age Adult", "Older Adult", "Oldest Adult"
+)
+
+colData_new_subset <- colData_new_subset %>%
+  mutate(
+    precise_age_category = factor(precise_age_category, levels = age_levels),
+    sex = factor(sex, levels = c("female", "male"))
+  ) %>%
+  filter(!is.na(precise_age_category)) %>%  
+  droplevels()
+
+counts <- colData_new_subset %>%
+  group_by(precise_age_category, sex) %>%
+  summarise(
+    N = n(),
+    y_pos = max(ARG_div_shan, na.rm = TRUE) + 0.3,
+    .groups = "drop"
+  )
+
+ggplot(colData_new_subset, aes(x = precise_age_category, y = ARG_div_shan, fill = sex)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("female" = "#B3A2C7", "male" = "#A6D854")) +
+  geom_text(
+    data = counts,
+    aes(x = precise_age_category, y = y_pos, label = paste0("N=", N)),
+    position = position_dodge(width = 0.8),
+    size = 3
+  ) +
+  labs(
+    x = "Age Category",
+    y = "ARG Shannon diversity",
+    title = "ARG Shannon Diversity by Age Category and Sex",
+    fill = "Sex"
+  ) +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+setwd("/scratch/project_2008149/USER_WORKSPACES/karhula/DATA")
+
+ggsave("Boxplot_Shannon_diversity_by_age_sex_no_NA.png", width = 8, height = 6, dpi = 300)
+
+```
+
+![Boxplot of ARG Shannon Diversity by Age and Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/Boxplot_Shannon_diversity_by_age_sex_no_NA.png)
+
+
+
 ### 6.2 Scatter plot + separate regression lines of ARG Shannon index by sex and age
 
 ```r
