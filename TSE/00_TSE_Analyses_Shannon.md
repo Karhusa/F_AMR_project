@@ -34,9 +34,9 @@ colData_new_subset <- colData_df %>%
 
 ```
 
-## 4. Ananlyses of Shannon diversity index and sex
+## 4. Ananlyses of ARG Shannon diversity index and sex
 
-### 4.1.  Boxplot of Shannon diversity index and sex
+### 4.1.  Boxplot of ARG Shannon diversity index and sex
 
 ```r
 colData_new_subset$sex[colData_new_subset$sex == "" | colData_new_subset$sex == "NA"] <- NA  # convert empty/NA strings to actual NA
@@ -155,9 +155,9 @@ ggsave("wilcoxon_Boxplot_Shannon_diversity_by_sex.png", width = 8, height = 6, d
 
 ![Boxplot of ARG Shannon Diversity by Sex](https://github.com/Karhusa/F_AMR_project/blob/main/Results/wilcoxon_Boxplot_Shannon_diversity_by_sex.png)
 
-## 5. Analyses of ARG Load by Age and Sex
+## 5. Analyses of ARG Shannon index by Age and Sex
 
-### 5.1 Boxplot of ARG Load by Category and Sex
+### 5.1 Boxplot of ARG Shannon index by Category and Sex
 
 ```r
 colData_new_subset$sex <- factor(colData_new_subset$sex, levels = c("female", "male"))  # make it a factor
@@ -203,7 +203,7 @@ ggsave("Boxplot_Shannon_diversity_by_age_sex.png", width = 8, height = 6, dpi = 
 
 * N values can be removed. I left N values there so that it would be easier to interpret results.
 
-### 6.2 Scatter plot + separate regression lines by sex
+### 6.2 Scatter plot + separate regression lines of ARG Shannon index by sex and age
 
 ```r
 colData_sex_clean <- colData_new_subset %>% filter(!is.na(sex))
@@ -266,7 +266,7 @@ ggplot(colData_sex_clean, aes(x = age_years, y = ARG_div_shan)
 ggsave("Regression_with_table_ARG_Shannon_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
 
-![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_load_by_age_sex.png)
+![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_Shannon_by_age_sex.png)
 
 | Term        | Estimate | Std. Error | t value | Pr(>|t|)    | Significance |
 |------------|---------|------------|---------|------------|-------------|
@@ -318,6 +318,7 @@ ggsave("GAM_ARG_Shannon_by_age_sex.png", width = 8, height = 6, dpi = 300)
 |------------|---------|------------|---------|------------|-------------|
 | (Intercept)| 1.9466  | 0.00689    | 282.43  | < 2e-16    | ***         |
 | sexmale    | -0.06394| 0.00970    | -6.595  | 4.47e-11   | ***         |
+
 
 | Term          | edf    | Ref.df | F value | p-value | Significance |
 |---------------|-------|--------|---------|---------|-------------|
