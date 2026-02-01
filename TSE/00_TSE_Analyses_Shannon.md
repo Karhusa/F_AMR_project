@@ -268,7 +268,7 @@ ggsave("Regression_with_table_ARG_Shannon_by_age_sex.png", width = 8, height = 6
 
 ![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_Shannon_by_age_sex.png)
 
-| Term        | Estimate | Std. Error | t value | Pr(>|t|)    | Significance |
+| Term       | Estimate| Std. Error | t value | Pr(>|t|)   | Significance|
 |------------|---------|------------|---------|------------|-------------|
 | (Intercept)| 1.7123  | 0.0103     | 165.93  | < 2e-16    | ***         |
 | age_years  | 0.00603 | 0.00020    | 29.81   | < 2e-16    | ***         |
