@@ -252,7 +252,7 @@ ggsave("Boxplot_Shannon_diversity_by_age_sex_no_NA.png", width = 8, height = 6, 
 
 
 
-### 6.2 Scatter plot + separate regression lines of ARG Shannon index by sex and age
+### 5.2 Scatter plot + separate regression lines of ARG Shannon index by sex and age
 
 ```r
 colData_sex_clean <- colData_new_subset %>% filter(!is.na(sex))
@@ -278,7 +278,7 @@ ggsave("Regression_Shannon_diversity_by_age_sex.png", width = 8, height = 6, dpi
 
 ![Regression analysis ARG Shannon diversity by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_Shannon_diversity_by_age_sex.png)
 
-### 6.3 Linear regression with results
+### 5.3 Linear regression with results
 ```
 model <- lm(ARG_div_shan ~ age_years + sex, data = colData_sex_clean)
 summary(model)
@@ -315,7 +315,7 @@ ggplot(colData_sex_clean, aes(x = age_years, y = ARG_div_shan)
 ggsave("Regression_with_table_ARG_Shannon_by_age_sex.png", width = 8, height = 6, dpi = 300)
 ```
 
-![Regression analysis with table ARG Load by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_Shannon_by_age_sex.png)
+![Regression analysis with table ARG Shannon index by Age and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Regression_with_table_ARG_Shannon_by_age_sex.png)
 
 | Term       | Estimate| Std. Error | t value | Pr(>t)   | Significance|
 |------------|---------|------------|---------|------------|-------------|
@@ -330,7 +330,7 @@ ggsave("Regression_with_table_ARG_Shannon_by_age_sex.png", width = 8, height = 6
 * 4706 observations deleted due to missingness
 
 
-### 6.4 Generalized Additive Model (GAM)
+### 5.4 Generalized Additive Model (GAM)
 * A GAM models the outcome as a sum of smooth functions of predictors rather than simple linear effects.
 
 ```r
@@ -382,6 +382,230 @@ ggsave("GAM_ARG_Shannon_by_age_sex.png", width = 8, height = 6, dpi = 300)
 * Sample size (n) = 10069
 
 
+---
+## 6. Analyses of ARG Shannon index by BMI and Sex
+
+### 6.1 Boxplot of ARG Shannon index by Category and Sex
+
+
+```r
+colData_subset_clean <- colData_subset %>% filter(BMI_range_new != "Normal/Overweight (<30)")
+
+colData_subset_clean$BMI_range_new <- factor(
+  colData_subset_clean$BMI_range_new,
+  levels = c("Underweight (<18.5)", "Normal (18.5-25)", 
+             "Overweight (25-30)", "Obese (>30)")
+)
+
+counts <- colData_subset_clean %>%
+  group_by(BMI_range_new, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(y_pos = max(colData_subset_clean$ARG_div_shan, na.rm = TRUE) + 0.1)
+
+ggplot(colData_subset_clean, aes(x = BMI_range_new, y = ARG_div_shan, fill = sex)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8), na.rm = TRUE) +
+  scale_fill_manual(values = c("female" = "#B3A2C7", "male" = "#A6D854")) +
+  geom_text(
+    data = counts,
+    aes(x = BMI_range_new, y = y_pos, label = paste0("N=", N), color = sex),
+    position = position_dodge(width = 0.8),
+    size = 3) +
+  labs(x = "BMI Category", y = "ARG Shannon", title = "ARG Shannon by BMI Category and Sex", fill = "Sex") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("Shannon_Boxplot_by_BMI_Sex.png", width = 8, height = 6, dpi = 300)
+
+```
+![Shannon Boxplot by BMI and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Shannon_Boxplot_by_BMI_Sex.png)
+
+## 6.2 Calclulations
+
+```r
+colData_subset_clean$BMI_range_new <- relevel(colData_subset_clean$BMI_range_new, ref = "Normal (18.5-25)")
+
+model_add_norm <- lm(formula = ARG_div_shan ~ BMI_range_new + sex, data = colData_subset_clean)
+summary(model_add_norm)
+
+model_int_norm <- lm(ARG_div_shan ~ BMI_range_new * sex, data = colData_subset_clean)
+summary(model_int_norm)
+
+```
+**Additive model:**
+
+
+
+**Interaction model:**
+| Term                                   | Estimate  | Std. Error | t value | p-value     | Significance |
+|---------------------------------------|----------|------------|---------|------------|-------------|
+
+
+### 6.3 Interaction model plot
+
+```r
+colData_subset_clean$BMI_range_new <- factor(colData_subset_clean$BMI_range_new,
+  levels = c("Underweight (<18.5)", "Normal (18.5-25)", "Overweight (25-30)", "Obese (>30)"))
+
+counts <- colData_subset_clean %>%
+  group_by(BMI_range_new, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(
+    y_pos = max(colData_subset_clean$ARG_div_shan, na.rm = TRUE) + 0.05,
+    y_offset = ifelse(sex == "female", 0.02, -0.02)  # separate male/female N labels slightly
+  )
+
+line_colors <- c("female" = "#FF6666", "male" = "#6666FF")  
+
+# Plot Interaction Model
+ggplot(colData_subset_clean, aes(x = BMI_range_new, y = ARG_div_shan, color = sex, group = sex)) +
+  geom_jitter(width = 0.2, alpha = 0.3, color = "grey60") +  # points in light grey
+  geom_smooth(method = "lm", se = TRUE, linewidth = 1.2, aes(color = sex)) +
+  scale_color_manual(values = line_colors) +
+  geom_text(
+    data = counts,
+    aes(x = BMI_range_new, y = y_pos + y_offset, label = paste0("N=", N), color = sex),
+    position = position_dodge(width = 0.8),
+    size = 3,
+    show.legend = FALSE
+  ) +
+  labs(
+    x = "BMI Category",
+    y = "ARG Shannon diversity",
+    title = "ARG Shannon diversity by BMI × Sex",
+    color = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("Interaction_model_Shannon_ by_BMI_sex.png", width = 8, height = 6, dpi = 300)
+```
+
+![Interaction model Shannon by BMI sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Interaction_model_Shannon_ by_BMI_sex.png)
 
 ---
 
+## 7. Analyses of ARG Load by UTI and Sex
+
+### 7.1 Boxplot of UTI and sex
+```r
+
+colData_subset_clean <- colData_subset %>% filter(!is.na(UTI_history) & !is.na(sex))
+
+colData_subset_clean$UTI_history <- factor(colData_subset_clean$UTI_history, levels = c("No", "Yes"))
+
+colData_subset_clean$sex <- factor(colData_subset_clean$sex, levels = c("female", "male"))
+
+counts_uti <- colData_subset_clean %>%
+  group_by(UTI_history, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(y_pos = max(colData_subset_clean$ARG_div_shan, na.rm = TRUE) + 0.1)
+
+ggplot(colData_subset_clean, aes(x = UTI_history, y = ARG_div_shan, fill = sex)
+) +
+  geom_boxplot(
+    alpha = 0.7,
+    position = position_dodge(width = 0.8)
+  ) +
+  scale_fill_manual(
+    values = c("female" = "#B3A2C7", "male" = "#A6D854")
+  ) +
+  geom_text(
+    data = counts_uti,
+    aes(
+      x = UTI_history,
+      y = y_pos,
+      label = paste0("N=", N)
+    ),
+    position = position_dodge(width = 0.8), size = 3
+  ) +
+  labs(
+    x = "UTI History",
+    y = "ARG Shannon diversity",
+    title = "ARG Shannon diversity by UTI History and Sex",
+    fill = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+ggsave("Shannon_Boxplot_by_UTI_Sex.png", width = 7, height = 5, dpi = 300)
+
+```
+
+![Boxplot ARG Load by UTI_history and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Shannon_Boxplot_by_UTI_Sex.png)
+
+### 7.2 Linear model 
+
+```r
+lm_uti <- lm(ARG_div_shan ~ UTI_history + sex, data = colData_subset_clean)
+summary(lm_uti)
+```
+| Section                 | Term           | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------|----------------|------------|------------|-----------|---------|
+
+
+### 7.3 Interactive model
+
+```r
+lm_uti_int <- lm(ARG_div_shan ~ UTI_history * sex, data = colData_subset_clean)
+summary(lm_uti_int)
+
+```
+| Section                 | Term                  | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------------|----------------|------------|------------|-----------|---------|
+
+---
+
+## 8. Shannon Analyses of Antibiotic Use and Sex
+
+### 8.1 Boxplot of Shannon diversity by Antibiotics Use and Sex
+
+```r
+counts_abx <- colData_subset_clean %>%
+  group_by(Antibiotics_used, sex) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  mutate(y_pos = max(colData_subset_clean$ARG_div_shan) + 0.1)
+
+ggplot(colData_subset_clean, aes(x = Antibiotics_used, y = ARG_div_shan, fill = sex)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = c("female" = "#B3A2C7", "male" = "#A6D854"))
+  geom_text(
+    data = counts_abx,
+    aes(x = Antibiotics_used, y = y_pos, label = paste0("N=", N)),
+    position = position_dodge(width = 0.8),
+    size = 3
+  ) +
+  labs(
+    x = "Antibiotics Used",
+    y = "ARG Shannon diversity",
+    title = "ARG Shannon diversity by Antibiotics Use and Sex",
+    fill = "Sex"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+ggsave("Shannon_Boxplot_by_AB_use_Sex.png", width = 7, height = 5, dpi = 300)
+
+```
+
+![Boxplot ARG Load by AB Use and Sex](https://github.com/Karhusa/Gender_differences_in_AMR/blob/main/Results/Shannon_Boxplot_by_AB_use_Sex.png)
+
+### 9.2 Linear model 
+
+```r
+lm_ab <- lm(ARG_div_shan ~ Antibiotics_used + sex, data = colData_subset_clean)
+
+summary(lm_ab)
+```
+
+| Section                 | Term                  | Estimate / Value | Std. Error | Statistic   | p-value   | Signif. |
+|-------------------------|----------------------|----------------|------------|------------|-----------|---------|
+
+
+
+```
+
+
+### 9.3 Interaction model
+```
+lm_interaction <- lm(ARG_div_shan ~ Antibiotics_used * sex, data = colData_subset_clean)
+summary(lm_interaction)
+```
